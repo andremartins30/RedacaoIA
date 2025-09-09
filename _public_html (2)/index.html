@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corretor de Redação Inteligente</title>
+    <link rel="stylesheet" href="style.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/xml/xml.min.js"></script>
+    </head>
+<body>
+
+    <header>
+        <h1>Corretor de Redação Inteligente</h1>
+        <p>Aprimore sua escrita com análises e sugestões instantâneas.</p>
+    </header>
+
+    <main>
+        <section class="ferramenta">
+            <h2>Sua Redação</h2>
+            <p>Cole o seu texto na caixa abaixo. Palavras com erros de ortografia serão sublinhadas em vermelho.</p>
+            
+            <textarea id="redacao-aluno" rows="15"></textarea>
+            
+            <button id="analisar-btn">Analisar Redação</button>
+        </section>
+
+        <section id="resultado-container" class="hidden">
+            <h2>Análise do Texto</h2>
+            <div id="resultado-div"></div>
+        </section>
+
+        <section class="sobre">
+            <h2>Sobre a Nossa Ferramenta</h2>
+            <ul>
+                <li><strong>Estatísticas Gerais:</strong> Contamos o número de palavras, frases e parágrafos.</li>
+                <li><strong>Repetição de Palavras:</strong> Destacamos termos que se repetem excessivamente.</li>
+                <li><strong>Vícios de Linguagem:</strong> Identificamos palavras que devem ser evitadas na escrita formal.</li>
+                <li><strong>Notas por Competência (Estilo ENEM):</strong> Calculamos uma nota simulada para as competências I, II, IV e V.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>Desenvolvido com ❤️ pelo seu Parceiro Tinzão do Meu ❤️.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
