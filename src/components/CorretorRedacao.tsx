@@ -169,22 +169,20 @@ const CorretorRedacao = () => {
                                 <div className="flex bg-gray-100 rounded-xl p-2">
                                     <button
                                         onClick={() => setActiveTab('text')}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                                            activeTab === 'text'
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'text'
                                                 ? 'bg-blue-600 text-white shadow-md'
                                                 : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
-                                        }`}
+                                            }`}
                                     >
                                         <Type className="h-4 w-4 inline mr-2" />
                                         Texto
                                     </button>
                                     <button
                                         onClick={() => setActiveTab('image')}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                                            activeTab === 'image'
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'image'
                                                 ? 'bg-blue-600 text-white shadow-md'
                                                 : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
-                                        }`}
+                                            }`}
                                     >
                                         <Camera className="h-4 w-4 inline mr-2" />
                                         Imagem
