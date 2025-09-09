@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Função simulada de OCR (você pode substituir por uma implementação real)
-const simulateOCR = async (imageData: string): Promise<string> => {
+const simulateOCR = async (): Promise<string> => {
     // Simula o processamento de OCR
     await new Promise(resolve => setTimeout(resolve, 2000));
 
@@ -29,7 +29,7 @@ const processImageBase64 = async (base64Data: string): Promise<string> => {
         // Exemplos: Google Vision API, AWS Textract, Tesseract.js
 
         // Para demonstração, vamos simular o OCR
-        const extractedText = await simulateOCR(base64Image);
+        const extractedText = await simulateOCR();
 
         return extractedText;
 
@@ -39,45 +39,6 @@ const processImageBase64 = async (base64Data: string): Promise<string> => {
     }
 };
 
-// Função para integração com Google Vision API (comentada para demonstração)
-const processWithGoogleVision = async (base64Image: string): Promise<string> => {
-    // Configuração da API do Google Vision
-    const apiKey = process.env.GOOGLE_VISION_API_KEY;
-
-    if (!apiKey) {
-        throw new Error('API Key do Google Vision não configurada');
-    }
-
-    const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            requests: [
-                {
-                    image: {
-                        content: base64Image
-                    },
-                    features: [
-                        {
-                            type: 'TEXT_DETECTION',
-                            maxResults: 1
-                        }
-                    ]
-                }
-            ]
-        })
-    });
-
-    const data = await response.json();
-
-    if (data.responses && data.responses[0] && data.responses[0].textAnnotations) {
-        return data.responses[0].textAnnotations[0].description;
-    }
-
-    throw new Error('Nenhum texto encontrado na imagem');
-};
 
 export async function POST(request: NextRequest) {
     try {
@@ -130,18 +91,6 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// Função auxiliar para validar formato de imagem
-const validateImageFormat = (base64Data: string): boolean => {
-    const validFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-
-    for (const format of validFormats) {
-        if (base64Data.startsWith(`data:${format};base64,`)) {
-            return true;
-        }
-    }
-
-    return false;
-};
 
 // Endpoint GET para informações sobre a API
 export async function GET() {

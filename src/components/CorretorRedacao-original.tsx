@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useId } from 'react';
-import { Upload, FileText, BarChart3, Award, Camera, Type, Zap, AlertCircle, BookOpen, Target, CheckCircle } from 'lucide-react';
+import { Upload, FileText, BarChart3, Award, Camera, Type, AlertCircle, BookOpen, Target, CheckCircle } from 'lucide-react';
 
 interface ResultadoAnalise {
     competencias: {
@@ -29,7 +29,14 @@ interface ResultadoAnalise {
         c5: string[];
         geral: string[];
     };
-    relatorio?: any;
+    relatorio?: {
+        c1: { nota: number };
+        c2: { nota: number };
+        c3: { nota: number };
+        c4: { nota: number };
+        c5: { nota: number };
+        total: number;
+    };
 }
 
 const CorretorRedacao = () => {
@@ -477,7 +484,7 @@ const CorretorRedacao = () => {
                                 <Award className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                                 <h3 className="text-xl font-semibold text-gray-800 mb-2">Pronto para análise!</h3>
                                 <p className="text-gray-600">
-                                    Digite ou cole sua redação ao lado e clique em "Analisar Redação" para receber feedback instantâneo
+                                    Digite ou cole sua redação ao lado e clique em &quot;Analisar Redação&quot; para receber feedback instantâneo
                                     baseado nos critérios do ENEM.
                                 </p>
                             </div>

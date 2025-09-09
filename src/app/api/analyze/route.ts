@@ -31,7 +31,20 @@ interface ResultadoAnalise {
     relatorio: RelatorioNotas;
 }
 
-const gerarFeedback = (relatorio: RelatorioNotas, analises: any) => {
+// Interface para as análises do texto
+interface AnalisesTexto {
+    repetidas: Array<{ palavra: string; vezes: number }>;
+    vicios: string[];
+    frasesLongas: string[];
+    palavras: number;
+    paragrafos: number;
+    ttr: string;
+    marcadores: string[];
+    conectivos: string[];
+    intervencao: { [key: string]: boolean };
+}
+
+const gerarFeedback = (relatorio: RelatorioNotas, analises: AnalisesTexto) => {
     const feedback = {
         c1: [] as string[],
         c2: [] as string[],
@@ -43,7 +56,7 @@ const gerarFeedback = (relatorio: RelatorioNotas, analises: any) => {
 
     // Feedback C1 - Norma Culta
     if (analises.repetidas.length > 0) {
-        feedback.c1.push(`Evite repetir palavras: ${analises.repetidas.slice(0, 3).map((r: any) => r.palavra).join(', ')}`);
+        feedback.c1.push(`Evite repetir palavras: ${analises.repetidas.slice(0, 3).map((r) => r.palavra).join(', ')}`);
     }
     if (analises.vicios.length > 0) {
         feedback.c1.push(`Vícios de linguagem encontrados: ${analises.vicios.join(', ')}`);
