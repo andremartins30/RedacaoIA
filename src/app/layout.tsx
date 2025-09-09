@@ -1,19 +1,20 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { ThemeProvider } from '@/contexts/ThemeContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'EnemAI - Corretor Inteligente de Redações',
+  title: 'NOTA1000 - Corretor Inteligente de Redações',
   description: 'Corrija suas redações do ENEM com inteligência artificial. Receba notas detalhadas e feedback personalizado.',
   keywords: ['ENEM', 'redação', 'correção', 'inteligência artificial', 'educação'],
-  authors: [{ name: 'EnemAI Team' }],
+  authors: [{ name: 'NOTA1000 Team' }],
   openGraph: {
-    title: 'EnemAI - Corretor Inteligente de Redações',
+    title: 'NOTA1000 - Corretor Inteligente de Redações',
     description: 'Corrija suas redações do ENEM com IA',
-    url: 'https://enemai.com.br',
-    siteName: 'EnemAI',
+    url: 'https://nota1000.com.br',
+    siteName: 'NOTA1000',
     images: [
       {
         url: '/og-image.png',
@@ -26,7 +27,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'EnemAI - Corretor Inteligente de Redações',
+    title: 'NOTA1000 - Corretor Inteligente de Redações',
     description: 'Corrija suas redações do ENEM com IA',
     images: ['/og-image.png'],
   },
@@ -40,11 +41,13 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
-        <div className="min-h-screen">
-          <main>
-            {children}
-          </main>
-        </div>
+        <ThemeProvider>
+          <div className="min-h-screen">
+            <main>
+              {children}
+            </main>
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   )
