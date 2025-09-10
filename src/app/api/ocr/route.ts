@@ -20,10 +20,11 @@ const simulateOCR = async (): Promise<string> => {
 };
 
 // Função para processar imagem em base64
-const processImageBase64 = async (base64Data: string): Promise<string> => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const processImageBase64 = async (_base64Data: string): Promise<string> => {
     try {
         // Remove o prefixo data:image/...;base64,
-        const base64Image = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
+        // const base64Image = base64Data.replace(/^data:image\/[a-z]+;base64,/, ''); // Não usado no momento
 
         // Aqui você integraria com uma API real de OCR
         // Exemplos: Google Vision API, AWS Textract, Tesseract.js

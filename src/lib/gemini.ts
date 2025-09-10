@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import {
     redacaoParaYAMLOtimizado,
     yamlParaAnaliseGemini,
-    calcularReducaoTokens,
+    // calcularReducaoTokens, // Função não usada no momento
     gerarEstatisticasOtimizacao,
     validarPreservacaoTexto
 } from './yaml-optimizer';

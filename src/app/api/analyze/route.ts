@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analisarTextoCompleto, gerarRelatorioDeNotas, RelatorioNotas } from '@/lib/analyzer';
+import {
+    analisarTextoCompleto,
+    gerarRelatorioDeNotas,
+    RelatorioNotas,
+    calcularConsenso,
+    sugerirConfiguracaoConsenso,
+    CONFIGURACOES_CONSENSO,
+    ResultadoConsenso
+} from '@/lib/analyzer';
 import { analisarRedacaoComGemini, gerarSugestoesDetalhadas, analisarRedacaoSimplificada, AnaliseGemini } from '@/lib/gemini';
 
 // Interface para o resultado da análise
@@ -32,6 +40,7 @@ interface ResultadoAnalise {
     relatorio: RelatorioNotas;
     analiseGemini?: AnaliseGemini | null;
     sugestoesIA?: string[];
+    consenso?: ResultadoConsenso; // Nova propriedade para o consenso
 }
 
 // Interface para as análises do texto
@@ -169,16 +178,19 @@ const gerarFeedback = (relatorio: RelatorioNotas, analises: AnalisesTexto) => {
         feedback.c5.push('A proposta precisa incluir: agente, ação, meio, finalidade e detalhamento.');
     }
 
+    // Calcular total para feedback geral
+    const totalRelatorio = relatorio.c1.nota + relatorio.c2.nota + relatorio.c3.nota + relatorio.c4.nota + relatorio.c5.nota;
+
     // Feedback geral (mais rigoroso)
-    if (relatorio.total === 0) {
+    if (totalRelatorio === 0) {
         feedback.geral.push('Texto inválido. Não atende aos critérios mínimos de uma redação dissertativa.');
-    } else if (relatorio.total < 200) {
+    } else if (totalRelatorio < 200) {
         feedback.geral.push('Redação muito abaixo do esperado. Revise todos os fundamentos da escrita dissertativa.');
-    } else if (relatorio.total < 400) {
+    } else if (totalRelatorio < 400) {
         feedback.geral.push('Redação precisa de muito trabalho. Foque nos pontos críticos destacados.');
-    } else if (relatorio.total < 600) {
+    } else if (totalRelatorio < 600) {
         feedback.geral.push('Redação em desenvolvimento. Continue praticando os pontos destacados.');
-    } else if (relatorio.total < 800) {
+    } else if (totalRelatorio < 800) {
         feedback.geral.push('Boa redação! Com melhorias pontuais pode alcançar nota ainda melhor.');
     } else {
         feedback.geral.push('Excelente redação! Continue mantendo esse padrão de qualidade.');
@@ -231,13 +243,14 @@ export async function POST(request: NextRequest) {
 
                 // Segunda tentativa - sugestões detalhadas (só se a primeira funcionou)
                 if (analiseGemini) {
+                    const totalRelatorio = relatorio.c1.nota + relatorio.c2.nota + relatorio.c3.nota + relatorio.c4.nota + relatorio.c5.nota;
                     sugestoesIA = await gerarSugestoesDetalhadas(texto, {
                         c1: relatorio.c1.nota,
                         c2: relatorio.c2.nota,
                         c3: relatorio.c3.nota,
                         c4: relatorio.c4.nota,
                         c5: relatorio.c5.nota,
-                        total: relatorio.total
+                        total: totalRelatorio
                     });
                 }
             } catch (error: unknown) {
@@ -255,6 +268,8 @@ export async function POST(request: NextRequest) {
             console.warn('Chave API do Gemini não configurada. Análise IA desabilitada.');
         }
 
+        const totalRelatorio = relatorio.c1.nota + relatorio.c2.nota + relatorio.c3.nota + relatorio.c4.nota + relatorio.c5.nota;
+
         // Resultado final
         const resultado: ResultadoAnalise = {
             competencias: {
@@ -264,7 +279,7 @@ export async function POST(request: NextRequest) {
                 c4: relatorio.c4.nota,
                 c5: relatorio.c5.nota
             },
-            total: relatorio.total,
+            total: totalRelatorio,
             palavras: analises.palavras,
             paragrafos: analises.paragrafos,
             repetidas: analises.repetidas,
@@ -279,6 +294,44 @@ export async function POST(request: NextRequest) {
             analiseGemini,
             sugestoesIA
         };
+
+        // Calcular consenso se temos análise de IA
+        if (analiseGemini) {
+            const notasProfessor = {
+                c1: relatorio.c1.nota,
+                c2: relatorio.c2.nota,
+                c3: relatorio.c3.nota,
+                c4: relatorio.c4.nota,
+                c5: relatorio.c5.nota
+            };
+
+            const notasIA = {
+                c1: analiseGemini.competencia1.nota,
+                c2: analiseGemini.competencia2.nota,
+                c3: analiseGemini.competencia3.nota,
+                c4: analiseGemini.competencia4.nota,
+                c5: analiseGemini.competencia5.nota
+            };
+
+            // Sugerir configuração baseada no perfil da redação
+            const configSugerida = sugerirConfiguracaoConsenso(notasProfessor, notasIA);
+
+            // Calcular consenso
+            const consenso = calcularConsenso(notasProfessor, notasIA, configSugerida);
+
+            // Adicionar consenso ao resultado
+            resultado.consenso = consenso;
+
+            // Atualizar competências e total com os valores de consenso
+            resultado.competencias = {
+                c1: consenso.notasConsenso.c1,
+                c2: consenso.notasConsenso.c2,
+                c3: consenso.notasConsenso.c3,
+                c4: consenso.notasConsenso.c4,
+                c5: consenso.notasConsenso.c5
+            };
+            resultado.total = consenso.notasConsenso.total;
+        }
 
         return NextResponse.json(resultado);
 

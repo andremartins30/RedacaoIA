@@ -28,7 +28,38 @@ export interface RelatorioNotas {
     c3: NotaCompetencia;
     c4: NotaCompetencia;
     c5: NotaCompetencia;
-    total: number;
+}
+
+// Interface para o consenso entre avaliações
+export interface ConfigConsenso {
+    pesoProfessor: number; // 0.0 a 1.0 (peso da análise tradicional)
+    pesoIA: number; // 0.0 a 1.0 (peso da análise de IA)
+    nivelRigidez: 'leniente' | 'moderado' | 'rigoroso'; // Nível de exigência
+    ajustesPorCompetencia: {
+        c1: number; // Multiplicador específico para C1
+        c2: number; // Multiplicador específico para C2
+        c3: number; // Multiplicador específico para C3
+        c4: number; // Multiplicador específico para C4
+        c5: number; // Multiplicador específico para C5
+    };
+}
+
+// Interface para resultado do consenso
+export interface ResultadoConsenso {
+    notasProfessor: {
+        c1: number; c2: number; c3: number; c4: number; c5: number; total: number;
+    };
+    notasIA: {
+        c1: number; c2: number; c3: number; c4: number; c5: number; total: number;
+    };
+    notasConsenso: {
+        c1: number; c2: number; c3: number; c4: number; c5: number; total: number;
+    };
+    detalhesConsenso: {
+        metodologia: string;
+        configuracao: ConfigConsenso;
+        explicacao: string[];
+    };
 }
 
 // Dicionários para análise (expandidos e mais rigorosos)
@@ -444,7 +475,7 @@ export const calcularNotaC5 = (analises: ResultadoAnalise): NotaCompetencia => {
 
     // Avaliação mais rigorosa dos elementos da proposta
     const elementosObrigatorios = ['agente', 'acao', 'meio', 'finalidade'];
-    const elementoOpcional = ['detalhamento'];
+    // const elementoOpcional = ['detalhamento']; // Não usado atualmente
 
     for (const elemento of elementosObrigatorios) {
         if (analises.intervencao[elemento]) {
@@ -513,7 +544,138 @@ export const gerarRelatorioDeNotas = (analises: ResultadoAnalise): RelatorioNota
     const c3 = calcularNotaC3(analises);
     const c4 = calcularNotaC4(analises);
     const c5 = calcularNotaC5(analises);
-    const total = c1.nota + c2.nota + c3.nota + c4.nota + c5.nota;
 
-    return { c1, c2, c3, c4, c5, total };
+    return { c1, c2, c3, c4, c5 };
+};
+
+// Configurações predefinidas para diferentes níveis de rigidez
+export const CONFIGURACOES_CONSENSO = {
+    leniente: {
+        pesoProfessor: 0.3,
+        pesoIA: 0.7,
+        nivelRigidez: 'leniente' as const,
+        ajustesPorCompetencia: {
+            c1: 1.1, // Mais generoso com norma culta
+            c2: 1.15, // Mais generoso com estrutura
+            c3: 1.05, // Levemente mais generoso com argumentação
+            c4: 1.1, // Mais generoso com coesão
+            c5: 1.2  // Muito mais generoso com proposta
+        }
+    },
+    moderado: {
+        pesoProfessor: 0.4,
+        pesoIA: 0.6,
+        nivelRigidez: 'moderado' as const,
+        ajustesPorCompetencia: {
+            c1: 1.0, // Neutro
+            c2: 1.05, // Levemente mais generoso
+            c3: 1.0, // Neutro
+            c4: 1.0, // Neutro
+            c5: 1.1  // Mais generoso com proposta
+        }
+    },
+    rigoroso: {
+        pesoProfessor: 0.6,
+        pesoIA: 0.4,
+        nivelRigidez: 'rigoroso' as const,
+        ajustesPorCompetencia: {
+            c1: 0.95, // Mais rigoroso
+            c2: 0.9, // Mais rigoroso com estrutura
+            c3: 0.95, // Mais rigoroso com argumentação
+            c4: 0.9, // Mais rigoroso com coesão
+            c5: 0.85  // Muito mais rigoroso com proposta
+        }
+    }
+};
+
+// Função principal para calcular o consenso
+export const calcularConsenso = (
+    notasProfessor: { c1: number; c2: number; c3: number; c4: number; c5: number; },
+    notasIA: { c1: number; c2: number; c3: number; c4: number; c5: number; },
+    config: ConfigConsenso = CONFIGURACOES_CONSENSO.moderado
+): ResultadoConsenso => {
+    const notasConsenso = {
+        c1: 0, c2: 0, c3: 0, c4: 0, c5: 0, total: 0
+    };
+
+    const explicacao: string[] = [];
+
+    // Validação dos pesos
+    const somasPesos = config.pesoProfessor + config.pesoIA;
+    if (Math.abs(somasPesos - 1.0) > 0.01) {
+        throw new Error('A soma dos pesos deve ser igual a 1.0');
+    }
+
+    // Calcular consenso para cada competência
+    const competencias = ['c1', 'c2', 'c3', 'c4', 'c5'] as const;
+
+    for (const comp of competencias) {
+        const notaProfessor = notasProfessor[comp];
+        const notaIA = notasIA[comp];
+        const ajuste = config.ajustesPorCompetencia[comp];
+
+        // Fórmula do consenso ponderado com ajuste
+        const consensoBase = (notaProfessor * config.pesoProfessor + notaIA * config.pesoIA);
+        const consensoAjustado = Math.round(consensoBase * ajuste);
+
+        // Garantir que a nota esteja entre 0 e 200
+        notasConsenso[comp] = Math.max(0, Math.min(200, consensoAjustado));
+
+        // Adicionar explicação detalhada
+        const diferenca = Math.abs(notaProfessor - notaIA);
+        if (diferenca > 50) {
+            explicacao.push(
+                `${comp.toUpperCase()}: Grande diferença entre avaliações (Professor: ${notaProfessor}, IA: ${notaIA}). ` +
+                `Consenso: ${notasConsenso[comp]} (peso professor: ${(config.pesoProfessor * 100).toFixed(0)}%, IA: ${(config.pesoIA * 100).toFixed(0)}%, ajuste: ${(ajuste * 100).toFixed(0)}%)`
+            );
+        } else {
+            explicacao.push(
+                `${comp.toUpperCase()}: Professor ${notaProfessor}, IA ${notaIA} → Consenso ${notasConsenso[comp]}`
+            );
+        }
+    }
+
+    // Calcular totais
+    const totalProfessor = Object.values(notasProfessor).reduce((a, b) => a + b, 0);
+    const totalIA = Object.values(notasIA).reduce((a, b) => a + b, 0);
+    notasConsenso.total = Object.values(notasConsenso).reduce((a, b) => a + b, 0) - notasConsenso.total; // Remove o total que foi incluído na soma
+
+    return {
+        notasProfessor: { ...notasProfessor, total: totalProfessor },
+        notasIA: { ...notasIA, total: totalIA },
+        notasConsenso,
+        detalhesConsenso: {
+            metodologia: `Consenso ${config.nivelRigidez} com pesos: Professor ${(config.pesoProfessor * 100).toFixed(0)}%, IA ${(config.pesoIA * 100).toFixed(0)}%`,
+            configuracao: config,
+            explicacao
+        }
+    };
+};
+
+// Função para sugerir configuração baseada no perfil da redação
+export const sugerirConfiguracaoConsenso = (
+    notasProfessor: { c1: number; c2: number; c3: number; c4: number; c5: number; },
+    notasIA: { c1: number; c2: number; c3: number; c4: number; c5: number; }
+): ConfigConsenso => {
+    const totalProfessor = Object.values(notasProfessor).reduce((a, b) => a + b, 0);
+    const totalIA = Object.values(notasIA).reduce((a, b) => a + b, 0);
+    const diferenca = Math.abs(totalProfessor - totalIA);
+
+    // Se a diferença é muito grande (>200 pontos), usar configuração mais balanceada
+    if (diferenca > 200) {
+        return CONFIGURACOES_CONSENSO.moderado;
+    }
+
+    // Se as notas são muito baixas (<400), usar configuração mais leniente
+    if (totalProfessor < 400 && totalIA < 400) {
+        return CONFIGURACOES_CONSENSO.leniente;
+    }
+
+    // Se ambas as notas são altas (>800), usar configuração mais rigorosa
+    if (totalProfessor > 800 && totalIA > 800) {
+        return CONFIGURACOES_CONSENSO.rigoroso;
+    }
+
+    // Caso padrão: moderado
+    return CONFIGURACOES_CONSENSO.moderado;
 };

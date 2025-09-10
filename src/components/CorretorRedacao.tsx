@@ -3,7 +3,7 @@
 import React, { useState, useId, useEffect } from 'react';
 import { Upload, BarChart3, Award, Camera, Type, Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
-import type { RelatorioNotas } from '@/lib/analyzer';
+import type { RelatorioNotas, DetalhesNota } from '@/lib/analyzer';
 
 interface ResultadoAnalise {
     competencias: {
@@ -68,6 +68,22 @@ interface ResultadoAnalise {
         sugestoesDetalhadas: string[];
         analiseQualitativa: string;
     } | null;
+    consenso?: {
+        notasProfessor: {
+            c1: number; c2: number; c3: number; c4: number; c5: number; total: number;
+        };
+        notasIA: {
+            c1: number; c2: number; c3: number; c4: number; c5: number; total: number;
+        };
+        notasConsenso: {
+            c1: number; c2: number; c3: number; c4: number; c5: number; total: number;
+        };
+        detalhesConsenso: {
+            metodologia: string;
+            configuracao: any;
+            explicacao: string[];
+        };
+    };
     sugestoesIA?: string[];
 }
 
@@ -210,8 +226,6 @@ const CorretorRedacao = () => {
         const paragrafosDivididos = texto.split('\n').filter(p => p.trim());
 
         return paragrafosDivididos.map((paragrafo, pIndex) => {
-            // Aplica marcações em cada parágrafo
-            let textoMarcado = paragrafo;
             let offset = 0;
 
             // Calcula offset para este parágrafo
@@ -238,7 +252,7 @@ const CorretorRedacao = () => {
                         <div className="mt-2 space-y-1">
                             {problemasParagrafo.map(problema => (
                                 <div key={problema.id} className={`text-xs p-2 rounded ${problema.cor}`}>
-                                    <strong>"{problema.texto}"</strong> - {problema.sugestao}
+                                    <strong>&ldquo;{problema.texto}&rdquo;</strong> - {problema.sugestao}
                                 </div>
                             ))}
                         </div>
@@ -562,10 +576,10 @@ const CorretorRedacao = () => {
                                                                     {relatorioCompetencia && typeof relatorioCompetencia === 'object' && 'detalhes' in relatorioCompetencia && relatorioCompetencia.detalhes && relatorioCompetencia.detalhes.length > 0 ? (
                                                                         <div className="space-y-1">
                                                                             <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Avaliação:</div>
-                                                                            {relatorioCompetencia.detalhes.map((detalhe: any, i: number) => (
+                                                                            {relatorioCompetencia.detalhes.map((detalhe: DetalhesNota, i: number) => (
                                                                                 <div key={i} className={`flex items-start space-x-2 text-xs ${detalhe.pontos > 0 ? 'text-green-600 dark:text-green-400' :
-                                                                                        detalhe.pontos < 0 ? 'text-red-600 dark:text-red-400' :
-                                                                                            'text-gray-600 dark:text-gray-400'
+                                                                                    detalhe.pontos < 0 ? 'text-red-600 dark:text-red-400' :
+                                                                                        'text-gray-600 dark:text-gray-400'
                                                                                     }`}>
                                                                                     <span className="flex-shrink-0">•</span>
                                                                                     <span className="flex-1">
@@ -597,6 +611,62 @@ const CorretorRedacao = () => {
                                             })}
                                         </div>
                                     </div>
+
+                                    {/* Consenso Professor + IA */}
+                                    {resultado.consenso && (
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm p-6">
+                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 text-center">
+                                                📊 Consenso de Avaliação
+                                            </h3>
+
+                                            <div className="grid grid-cols-3 gap-4 mb-6">
+                                                {/* Nota do Professor */}
+                                                <div className="text-center">
+                                                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                                        {resultado.consenso.notasProfessor.total}
+                                                    </div>
+                                                    <div className="text-sm text-gray-600 dark:text-gray-400">Professor</div>
+                                                    <div className="text-xs text-gray-500 dark:text-gray-500">Análise Tradicional</div>
+                                                </div>
+
+                                                {/* Nota da IA */}
+                                                <div className="text-center">
+                                                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                                                        {resultado.consenso.notasIA.total}
+                                                    </div>
+                                                    <div className="text-sm text-gray-600 dark:text-gray-400">IA</div>
+                                                    <div className="text-xs text-gray-500 dark:text-gray-500">Análise com Gemini</div>
+                                                </div>
+
+                                                {/* Nota de Consenso */}
+                                                <div className="text-center">
+                                                    <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                                                        {resultado.consenso.notasConsenso.total}
+                                                    </div>
+                                                    <div className="text-sm text-gray-600 dark:text-gray-400">Consenso</div>
+                                                    <div className="text-xs text-gray-500 dark:text-gray-500">Nota Final</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Metodologia */}
+                                            <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded">
+                                                <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Metodologia:</div>
+                                                <div className="text-xs text-gray-600 dark:text-gray-400">
+                                                    {resultado.consenso.detalhesConsenso.metodologia}
+                                                </div>
+                                            </div>
+
+                                            {/* Detalhes por Competência */}
+                                            <div className="space-y-2">
+                                                <div className="text-xs font-medium text-gray-700 dark:text-gray-300">Detalhamento por Competência:</div>
+                                                {resultado.consenso.detalhesConsenso.explicacao.map((explicacao, i) => (
+                                                    <div key={i} className="text-xs text-gray-600 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                                                        {explicacao}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Estatísticas Básicas */}
                                     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm p-6">
