@@ -1,4 +1,11 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import {
+    redacaoParaYAMLOtimizado,
+    yamlParaAnaliseGemini,
+    calcularReducaoTokens,
+    gerarEstatisticasOtimizacao,
+    validarPreservacaoTexto
+} from './yaml-optimizer';
 
 // Configuração do Gemini com modelo mais eficiente para o free tier
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
@@ -200,6 +207,37 @@ Retorne um JSON válido seguindo exatamente esta estrutura:
 **REDAÇÃO PARA AVALIAR:**
 `;
 
+// Prompt otimizado para análise YAML (economia de ~45% tokens)
+const PROMPT_YAML_OTIMIZADO = `
+Você é um corretor especialista em redações ENEM. Recebeu uma redação em formato YAML estruturado para análise mais eficiente.
+
+IMPORTANTE: O texto_original no YAML está INTACTO e deve ser analisado conforme critérios oficiais ENEM.
+
+Analise seguindo rigorosamente os critérios ENEM (0-200 pontos cada competência) e responda APENAS em YAML compacto:
+
+\`\`\`yaml
+analise:
+  notas:
+    C1: 160  # Norma culta
+    C2: 140  # Tema
+    C3: 180  # Argumentação
+    C4: 120  # Coesão
+    C5: 160  # Proposta
+    total: 760
+  feedback:
+    pontos_fortes: ["domínio norma culta", "argumentação consistente"]
+    areas_melhoria: ["conectivos", "dados estatísticos"]
+  sugestoes:
+    - original: "frase a melhorar"
+      melhoria: "sugestão específica"
+    - original: "outra frase"
+      melhoria: "outra sugestão"
+  observacoes: "análise geral breve e objetiva"
+\`\`\`
+
+Redação estruturada:
+`;
+
 export async function analisarRedacaoComGemini(texto: string): Promise<AnaliseGemini | null> {
     try {
         if (!process.env.GOOGLE_API_KEY) {
@@ -225,7 +263,28 @@ export async function analisarRedacaoComGemini(texto: string): Promise<AnaliseGe
             return null;
         }
 
-        const analise: AnaliseGemini = JSON.parse(jsonMatch[0]);
+        let analise: AnaliseGemini;
+        try {
+            // Tenta fazer o parse do JSON
+            analise = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+            console.error('Erro no parse do JSON do Gemini:', parseError);
+            console.error('JSON extraído:', jsonMatch[0].substring(0, 200) + '...');
+
+            // Tenta limpar o JSON removendo caracteres problemáticos
+            const cleanJson = jsonMatch[0]
+                .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove caracteres de controle
+                .replace(/,(\s*[}\]])/g, '$1') // Remove vírgulas extras
+                .replace(/([}\]])(\s*[,])/g, '$1'); // Remove vírgulas após fechamento
+
+            try {
+                analise = JSON.parse(cleanJson);
+                console.log('JSON corrigido com sucesso');
+            } catch (cleanError) {
+                console.error('Falha mesmo com limpeza do JSON:', cleanError);
+                return null;
+            }
+        }
 
         // Validar se a análise tem a estrutura esperada
         if (!analise.competencia1 || !analise.notaFinal) {
@@ -256,7 +315,153 @@ export async function analisarRedacaoComGemini(texto: string): Promise<AnaliseGe
 
         return null;
     }
-} export async function gerarSugestoesDetalhadas(texto: string, analiseOriginal: {
+}
+
+/**
+ * Análise otimizada usando YAML - Reduz tokens em ~45%
+ * IMPORTANTE: Preserva texto original integralmente
+ */
+export async function analisarRedacaoComYAMLOtimizado(texto: string): Promise<{
+    analise: AnaliseGemini | null;
+    estatisticas: {
+        tokens_texto_original: number;
+        tokens_yaml: number;
+        reducao_percentual: number;
+    };
+    economia_tokens: {
+        economia_absoluta: number;
+        economia_percentual: number;
+    };
+} | null> {
+    try {
+        if (!process.env.GOOGLE_API_KEY) {
+            console.warn('Chave da API do Google não configurada');
+            return null;
+        }
+
+        // Converte redação para YAML otimizado (PRESERVANDO texto original)
+        const yamlOtimizado = redacaoParaYAMLOtimizado(texto);
+
+        // Verifica se o texto foi preservado
+        const yamlData = yamlParaAnaliseGemini(yamlOtimizado);
+        if (!validarPreservacaoTexto(texto, yamlData)) {
+            console.error('ERRO CRÍTICO: Texto original foi alterado durante otimização YAML');
+            return null;
+        }
+
+        // Gera estatísticas de otimização
+        const estatisticas = gerarEstatisticasOtimizacao(texto, yamlOtimizado);
+        console.log(`🚀 Otimização YAML ativada:`, estatisticas);
+
+        const prompt = PROMPT_YAML_OTIMIZADO + yamlOtimizado;
+
+        const result = await retryWithBackoff(async () => {
+            await waitForRateLimit();
+            return await model.generateContent(prompt);
+        });
+
+        const response = await result.response;
+        const yamlResposta = response.text();
+
+        // Converte resposta YAML para estrutura esperada
+        const analiseYAML = yamlParaAnaliseGemini(yamlResposta);
+
+        if (!analiseYAML) {
+            console.error('Resposta YAML do Gemini inválida');
+            return null;
+        }
+
+        // Type-safe access to YAML data
+        const analiseData = analiseYAML as {
+            analise?: {
+                notas?: {
+                    C1?: number;
+                    C2?: number;
+                    C3?: number;
+                    C4?: number;
+                    C5?: number;
+                    total?: number;
+                };
+                feedback?: {
+                    pontos_fortes?: string[];
+                    areas_melhoria?: string[];
+                };
+                observacoes?: string;
+                sugestoes?: Array<{ melhoria?: string }>;
+            };
+        };
+
+        // Converte para formato AnaliseGemini compatível
+        const analiseGemini: AnaliseGemini = {
+            competencia1: {
+                nota: analiseData.analise?.notas?.C1 || 0,
+                feedback: analiseData.analise?.feedback?.pontos_fortes || [],
+                pontosFortes: analiseData.analise?.feedback?.pontos_fortes || [],
+                pontosFrageis: analiseData.analise?.feedback?.areas_melhoria || []
+            },
+            competencia2: {
+                nota: analiseData.analise?.notas?.C2 || 0,
+                feedback: analiseData.analise?.feedback?.pontos_fortes || [],
+                pontosFortes: analiseData.analise?.feedback?.pontos_fortes || [],
+                pontosFrageis: analiseData.analise?.feedback?.areas_melhoria || []
+            },
+            competencia3: {
+                nota: analiseData.analise?.notas?.C3 || 0,
+                feedback: analiseData.analise?.feedback?.pontos_fortes || [],
+                pontosFortes: analiseData.analise?.feedback?.pontos_fortes || [],
+                pontosFrageis: analiseData.analise?.feedback?.areas_melhoria || []
+            },
+            competencia4: {
+                nota: analiseData.analise?.notas?.C4 || 0,
+                feedback: analiseData.analise?.feedback?.pontos_fortes || [],
+                pontosFortes: analiseData.analise?.feedback?.pontos_fortes || [],
+                pontosFrageis: analiseData.analise?.feedback?.areas_melhoria || []
+            },
+            competencia5: {
+                nota: analiseData.analise?.notas?.C5 || 0,
+                feedback: analiseData.analise?.feedback?.pontos_fortes || [],
+                pontosFortes: analiseData.analise?.feedback?.pontos_fortes || [],
+                pontosFrageis: analiseData.analise?.feedback?.areas_melhoria || []
+            },
+            notaFinal: analiseData.analise?.notas?.total || 0,
+            feedbackGeral: [analiseData.analise?.observacoes || 'Análise concluída'],
+            sugestoesDetalhadas: (analiseData.analise?.sugestoes || []).map((s: { melhoria?: string }) => s.melhoria || ''),
+            analiseQualitativa: analiseData.analise?.observacoes || ''
+        };
+
+        return {
+            analise: analiseGemini,
+            estatisticas: {
+                tokens_texto_original: estatisticas.tokens_original,
+                tokens_yaml: estatisticas.tokens_yaml,
+                reducao_percentual: estatisticas.reducao_percentual
+            },
+            economia_tokens: {
+                economia_absoluta: estatisticas.economia_absoluta,
+                economia_percentual: estatisticas.reducao_percentual
+            }
+        };
+
+    } catch (error: unknown) {
+        console.error('Erro na análise YAML otimizada:', error);
+
+        // Tratamento específico de erros
+        if (error && typeof error === 'object' && 'status' in error) {
+            switch (error.status) {
+                case 503:
+                    console.warn('Serviço Gemini sobrecarregado. Análise YAML temporariamente indisponível.');
+                    break;
+                case 429:
+                    console.warn('Cota da API Gemini excedida. Análise YAML temporariamente indisponível.');
+                    break;
+            }
+        }
+
+        return null;
+    }
+}
+
+export async function gerarSugestoesDetalhadas(texto: string, analiseOriginal: {
     c1: number;
     c2: number;
     c3: number;

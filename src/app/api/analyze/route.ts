@@ -221,31 +221,38 @@ export async function POST(request: NextRequest) {
         let analiseGemini: AnaliseGemini | null = null;
         let sugestoesIA: string[] = [];
 
-        try {
-            // Primeira tentativa - análise principal (mais importante)
-            analiseGemini = await analisarRedacaoComGemini(texto);
+        // Verificar se a chave da API Gemini está configurada
+        const hasGeminiKey = process.env.GOOGLE_API_KEY && process.env.GOOGLE_API_KEY.trim() !== '';
 
-            // Segunda tentativa - sugestões detalhadas (só se a primeira funcionou)
-            if (analiseGemini) {
-                sugestoesIA = await gerarSugestoesDetalhadas(texto, {
-                    c1: relatorio.c1.nota,
-                    c2: relatorio.c2.nota,
-                    c3: relatorio.c3.nota,
-                    c4: relatorio.c4.nota,
-                    c5: relatorio.c5.nota,
-                    total: relatorio.total
-                });
-            }
-        } catch (error: unknown) {
-            console.warn('Tentativa de análise IA completa falhou, tentando versão simplificada...', error);
-
-            // Fallback: tentar análise simplificada se a completa falhar
+        if (hasGeminiKey) {
             try {
-                analiseGemini = await analisarRedacaoSimplificada(texto);
-                console.log('Análise IA simplificada executada com sucesso');
-            } catch {
-                console.warn('Análise IA completamente indisponível devido a limitações de cota');
+                // Primeira tentativa - análise principal (mais importante)
+                analiseGemini = await analisarRedacaoComGemini(texto);
+
+                // Segunda tentativa - sugestões detalhadas (só se a primeira funcionou)
+                if (analiseGemini) {
+                    sugestoesIA = await gerarSugestoesDetalhadas(texto, {
+                        c1: relatorio.c1.nota,
+                        c2: relatorio.c2.nota,
+                        c3: relatorio.c3.nota,
+                        c4: relatorio.c4.nota,
+                        c5: relatorio.c5.nota,
+                        total: relatorio.total
+                    });
+                }
+            } catch (error: unknown) {
+                console.warn('Tentativa de análise IA completa falhou, tentando versão simplificada...', error);
+
+                // Fallback: tentar análise simplificada se a completa falhar
+                try {
+                    analiseGemini = await analisarRedacaoSimplificada(texto);
+                    console.log('Análise IA simplificada executada com sucesso');
+                } catch {
+                    console.warn('Análise IA completamente indisponível devido a limitações de cota');
+                }
             }
+        } else {
+            console.warn('Chave API do Gemini não configurada. Análise IA desabilitada.');
         }
 
         // Resultado final

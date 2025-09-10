@@ -3,6 +3,7 @@
 import React, { useState, useId, useEffect } from 'react';
 import { Upload, BarChart3, Award, Camera, Type, Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
+import type { RelatorioNotas } from '@/lib/analyzer';
 
 interface ResultadoAnalise {
     competencias: {
@@ -30,7 +31,7 @@ interface ResultadoAnalise {
         c5: string[];
         geral: string[];
     };
-    relatorio?: unknown;
+    relatorio?: RelatorioNotas;
     analiseGemini?: {
         competencia1: {
             nota: number;
@@ -78,6 +79,30 @@ const CorretorRedacao = () => {
     const [ocrLoading, setOcrLoading] = useState(false);
     const { isDark, toggleTheme } = useTheme();
 
+    // Mapa das competências ENEM com suas descrições completas
+    const competenciasENEM = {
+        c1: {
+            nome: 'Norma Culta',
+            descricao: 'Demonstrar domínio da modalidade escrita formal da língua portuguesa. Avalia ortografia, acentuação, concordância verbal e nominal, regência, pontuação, flexão, colocação pronominal e propriedade vocabular.'
+        },
+        c2: {
+            nome: 'Compreensão do Tema',
+            descricao: 'Compreender a proposta de redação e aplicar conceitos das várias áreas de conhecimento para desenvolver o tema, dentro dos limites estruturais do texto dissertativo-argumentativo em prosa.'
+        },
+        c3: {
+            nome: 'Argumentação',
+            descricao: 'Selecionar, relacionar, organizar e interpretar informações, fatos, opiniões e argumentos em defesa de um ponto de vista. Demonstrar capacidade de análise crítica e construção de argumentos consistentes.'
+        },
+        c4: {
+            nome: 'Coesão e Coerência',
+            descricao: 'Demonstrar conhecimento dos mecanismos linguísticos necessários para a construção da argumentação. Utilizar adequadamente elementos coesivos, conectivos, conjunções e demais recursos de articulação textual.'
+        },
+        c5: {
+            nome: 'Proposta de Intervenção',
+            descricao: 'Elaborar proposta de intervenção para o problema abordado, respeitando os direitos humanos. A proposta deve ser detalhada, exequível, relacionada ao tema e conter agente, ação, meio, finalidade e detalhamento.'
+        }
+    };
+
     // Gera ID único que é consistente entre servidor e cliente
     const fileInputId = useId();
 
@@ -87,6 +112,141 @@ const CorretorRedacao = () => {
             setResultado(null);
         }
     }, [texto, resultado]);
+
+    // Função para analisar e marcar problemas no texto
+    const analisarTextoComMarcacoes = (texto: string): Array<{
+        id: string;
+        tipo: string;
+        texto: string;
+        posicoes: Array<{ inicio: number, fim: number }>;
+        sugestao: string;
+        cor: string;
+    }> => {
+        if (!resultado) return [];
+
+        const problemas: Array<{
+            id: string;
+            tipo: string;
+            texto: string;
+            posicoes: Array<{ inicio: number, fim: number }>;
+            sugestao: string;
+            cor: string;
+        }> = [];
+
+        // Detectar palavras repetidas em excesso
+        if (resultado.repetidas) {
+            resultado.repetidas.forEach((rep: { palavra: string, vezes: number }, index: number) => {
+                if (rep.vezes >= 3) {
+                    problemas.push({
+                        id: `repetida-${index}`,
+                        tipo: 'repeticao',
+                        texto: rep.palavra,
+                        posicoes: encontrarPosicoesTexto(texto, rep.palavra),
+                        sugestao: `Palavra repetida ${rep.vezes} vezes. Considere sinônimos`,
+                        cor: 'bg-yellow-100 dark:bg-yellow-900/40 border-l-4 border-yellow-400 dark:border-yellow-500'
+                    });
+                }
+            });
+        }
+
+        // Detectar vícios de linguagem
+        if (resultado.vicios) {
+            resultado.vicios.forEach((vicio: string, index: number) => {
+                const posicoes = encontrarPosicoesTexto(texto.toLowerCase(), vicio.toLowerCase());
+                if (posicoes.length > 0) {
+                    problemas.push({
+                        id: `vicio-${index}`,
+                        tipo: 'vicio',
+                        texto: vicio,
+                        posicoes,
+                        sugestao: `Evite expressões informais como "${vicio}"`,
+                        cor: 'bg-red-100 dark:bg-red-900/40 border-l-4 border-red-400 dark:border-red-500'
+                    });
+                }
+            });
+        }
+
+        // Detectar frases longas
+        if (resultado.frasesLongas) {
+            resultado.frasesLongas.forEach((frase: string, index: number) => {
+                const pos = texto.indexOf(frase);
+                if (pos !== -1) {
+                    problemas.push({
+                        id: `frase-longa-${index}`,
+                        tipo: 'frase_longa',
+                        texto: frase,
+                        posicoes: [{ inicio: pos, fim: pos + frase.length }],
+                        sugestao: 'Frase muito longa. Considere dividi-la para melhor clareza',
+                        cor: 'bg-orange-100 dark:bg-orange-900/40 border-l-4 border-orange-400 dark:border-orange-500'
+                    });
+                }
+            });
+        }
+
+        return problemas;
+    };
+
+    // Função auxiliar para encontrar todas as posições de uma palavra no texto
+    const encontrarPosicoesTexto = (texto: string, palavra: string) => {
+        const posicoes = [];
+        let index = texto.indexOf(palavra, 0);
+
+        while (index !== -1) {
+            posicoes.push({
+                inicio: index,
+                fim: index + palavra.length
+            });
+            index = texto.indexOf(palavra, index + 1);
+        }
+
+        return posicoes;
+    };
+
+    // Função para renderizar o texto com marcações
+    const renderizarTextoComMarcacoes = () => {
+        if (!resultado || !texto) return null;
+
+        const problemas = analisarTextoComMarcacoes(texto);
+        const paragrafosDivididos = texto.split('\n').filter(p => p.trim());
+
+        return paragrafosDivididos.map((paragrafo, pIndex) => {
+            // Aplica marcações em cada parágrafo
+            let textoMarcado = paragrafo;
+            let offset = 0;
+
+            // Calcula offset para este parágrafo
+            for (let i = 0; i < pIndex; i++) {
+                offset += paragrafosDivididos[i].length + 1; // +1 para quebra de linha
+            }
+
+            // Ordena problemas por posição para aplicar marcações sem conflito
+            const problemasParagrafo = problemas.filter(p =>
+                p.posicoes.some(pos =>
+                    pos.inicio >= offset && pos.inicio < offset + paragrafo.length
+                )
+            ).sort((a, b) => a.posicoes[0].inicio - b.posicoes[0].inicio);
+
+            return (
+                <div key={pIndex} className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded">
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Parágrafo {pIndex + 1}
+                    </div>
+                    <div className="text-base leading-relaxed">
+                        {paragrafo}
+                    </div>
+                    {problemasParagrafo.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                            {problemasParagrafo.map(problema => (
+                                <div key={problema.id} className={`text-xs p-2 rounded ${problema.cor}`}>
+                                    <strong>"{problema.texto}"</strong> - {problema.sugestao}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        });
+    };
 
     const analisarTexto = async () => {
         if (!texto.trim()) {
@@ -102,7 +262,9 @@ const CorretorRedacao = () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ texto }),
+                body: JSON.stringify({
+                    texto: texto
+                }),
             });
 
             if (!response.ok) {
@@ -221,15 +383,15 @@ const CorretorRedacao = () => {
             <div className="max-w-7xl mx-auto px-6 py-8">
                 <div className="grid lg:grid-cols-3 gap-8">
                     {/* Editor de Texto - Seção Principal */}
-                    <div className="lg:col-span-2">
+                    <div className="lg:col-span-2 space-y-6">
                         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 shadow-md">
                             {/* Header do Editor */}
                             <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Editor de Redação</h2>
-                                    <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                                    <div className="text-sm text-gray-600 dark:text-gray-400">
                                         <span>{texto.split(/\s+/).filter(Boolean).length} palavras</span>
-                                        <span>•</span>
+                                        <span className="mx-2">•</span>
                                         <span>{texto.split('\n').length} linhas</span>
                                     </div>
                                 </div>
@@ -325,6 +487,48 @@ const CorretorRedacao = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Revisão do Texto - Posicionada abaixo do editor */}
+                        {resultado && (
+                            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 shadow-md">
+                                <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+                                    <div className="flex items-center space-x-2">
+                                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Revisão do Texto</h2>
+                                    </div>
+                                </div>
+
+                                <div className="p-6">
+                                    {/* Legenda das marcações - cores melhoradas */}
+                                    <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                                        <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                                            🏷️ Legenda das Marcações:
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                                            <div className="flex items-center space-x-2 bg-white dark:bg-gray-600 p-2 rounded border">
+                                                <div className="w-4 h-4 bg-yellow-300 dark:bg-yellow-500 rounded border border-yellow-400 dark:border-yellow-600"></div>
+                                                <span className="text-gray-700 dark:text-gray-200 font-medium">Repetições</span>
+                                            </div>
+                                            <div className="flex items-center space-x-2 bg-white dark:bg-gray-600 p-2 rounded border">
+                                                <div className="w-4 h-4 bg-red-300 dark:bg-red-500 rounded border border-red-400 dark:border-red-600"></div>
+                                                <span className="text-gray-700 dark:text-gray-200 font-medium">Vícios de linguagem</span>
+                                            </div>
+                                            <div className="flex items-center space-x-2 bg-white dark:bg-gray-600 p-2 rounded border">
+                                                <div className="w-4 h-4 bg-orange-300 dark:bg-orange-500 rounded border border-orange-400 dark:border-orange-600"></div>
+                                                <span className="text-gray-700 dark:text-gray-200 font-medium">Frases longas</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Texto com marcações - melhor contraste */}
+                                    <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 max-h-96 overflow-y-auto">
+                                        <div className="text-gray-800 dark:text-gray-100 leading-relaxed">
+                                            {renderizarTextoComMarcacoes()}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Painel de Resultados - Lado Direito */}
@@ -338,20 +542,49 @@ const CorretorRedacao = () => {
                                             <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                                                 {resultado.total}/1000
                                             </div>
-                                            <div className="text-sm text-gray-600 dark:text-gray-400">Nota Total</div>
+                                            <div className="text-sm text-gray-600 dark:text-gray-400">Nota do Professor</div>
                                         </div>
 
-                                        {/* Competências Simplificadas */}
-                                        <div className="space-y-3">
+                                        {/* Competências com Descrições Completas */}
+                                        <div className="space-y-4">
                                             {['c1', 'c2', 'c3', 'c4', 'c5'].map((comp, index) => {
                                                 const nota = resultado.competencias[comp as keyof typeof resultado.competencias];
                                                 const level = getNotaLevel(nota);
+                                                const competencia = competenciasENEM[comp as keyof typeof competenciasENEM];
+                                                const relatorioCompetencia = resultado.relatorio?.[comp as keyof typeof resultado.relatorio];
 
                                                 return (
-                                                    <div key={comp} className="space-y-1">
+                                                    <div key={comp} className="space-y-2">
                                                         <div className="flex justify-between text-sm">
-                                                            <span className="text-gray-700 dark:text-gray-300">C{index + 1}</span>
-                                                            <span className="font-medium text-gray-900 dark:text-white">{nota}/200</span>
+                                                            <div className="flex flex-col space-y-1">
+                                                                <span className="font-medium text-gray-900 dark:text-white">C{index + 1} - {competencia.nome}</span>
+                                                                <div className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                                                                    {relatorioCompetencia && typeof relatorioCompetencia === 'object' && 'detalhes' in relatorioCompetencia && relatorioCompetencia.detalhes && relatorioCompetencia.detalhes.length > 0 ? (
+                                                                        <div className="space-y-1">
+                                                                            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Avaliação:</div>
+                                                                            {relatorioCompetencia.detalhes.map((detalhe: any, i: number) => (
+                                                                                <div key={i} className={`flex items-start space-x-2 text-xs ${detalhe.pontos > 0 ? 'text-green-600 dark:text-green-400' :
+                                                                                        detalhe.pontos < 0 ? 'text-red-600 dark:text-red-400' :
+                                                                                            'text-gray-600 dark:text-gray-400'
+                                                                                    }`}>
+                                                                                    <span className="flex-shrink-0">•</span>
+                                                                                    <span className="flex-1">
+                                                                                        {detalhe.item}
+                                                                                        {detalhe.pontos !== 0 && (
+                                                                                            <span className="font-medium ml-1">
+                                                                                                ({detalhe.pontos > 0 ? '+' : ''}{detalhe.pontos} pts)
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </span>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    ) : (
+                                                                        competencia.descricao
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <span className="font-bold text-gray-900 dark:text-white ml-4 flex-shrink-0">{nota}/200</span>
                                                         </div>
                                                         <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                                                             <div
@@ -383,7 +616,7 @@ const CorretorRedacao = () => {
                                     {/* Feedback Simplificado */}
                                     {resultado.feedback && (
                                         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm p-6">
-                                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Sugestões</h3>
+                                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Sugestões do Professor</h3>
                                             <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
                                                 {resultado.feedback.geral && resultado.feedback.geral.length > 0 ? (
                                                     resultado.feedback.geral.slice(0, 3).map((dica: string, index: number) => (
@@ -399,12 +632,12 @@ const CorretorRedacao = () => {
                                         </div>
                                     )}
 
-                                    {/* Análise IA do Gemini */}
+                                    {/* Análise da IA */}
                                     {resultado.analiseGemini ? (
                                         <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border border-blue-200 dark:border-blue-700 shadow-sm p-6">
                                             <div className="flex items-center space-x-2 mb-4">
                                                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                                <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Análise IA - Gemini</h3>
+                                                <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Análise da IA</h3>
                                             </div>
 
                                             {/* Nota da IA */}
@@ -437,7 +670,7 @@ const CorretorRedacao = () => {
                                             <div className="space-y-2 text-sm text-amber-800 dark:text-amber-200">
                                                 <div className="flex items-start space-x-2">
                                                     <div className="w-1 h-1 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
-                                                    <span>Serviço Gemini temporariamente sobrecarregado ou cota esgotada.</span>
+                                                    <span>Serviço de IA temporariamente sobrecarregado ou indisponível.</span>
                                                 </div>
                                                 <div className="flex items-start space-x-2">
                                                     <div className="w-1 h-1 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
@@ -460,7 +693,7 @@ const CorretorRedacao = () => {
                                         <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-700 shadow-sm p-6">
                                             <div className="flex items-center space-x-2 mb-4">
                                                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                                <h3 className="text-sm font-semibold text-green-900 dark:text-green-100">Sugestões IA Detalhadas</h3>
+                                                <h3 className="text-sm font-semibold text-green-900 dark:text-green-100">Sugestões Detalhadas da IA</h3>
                                             </div>
 
                                             <div className="space-y-2 text-sm text-green-800 dark:text-green-200">

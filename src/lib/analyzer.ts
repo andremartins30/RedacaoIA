@@ -163,11 +163,11 @@ export const encontrarMarcadoresArgumentativos = (texto: string) => {
 
 // Função para verificar a qualidade básica do texto
 const verificarQualidadeMinima = (analises: ResultadoAnalise): boolean => {
-    // Critérios mínimos para uma redação válida
-    if (analises.palavras < 50) return false; // Texto muito curto
-    if (analises.paragrafos < 2) return false; // Sem estrutura mínima
-    if (analises.vicios.length > 5) return false; // Muitos vícios de linguagem
-    if (analises.repetidas.length > analises.palavras / 20) return false; // Muita repetição
+    // Critérios mínimos mais realistas para uma redação válida
+    if (analises.palavras < 30) return false; // Texto muito curto (era 50)
+    if (analises.paragrafos < 1) return false; // Sem estrutura mínima (era 2)
+    if (analises.vicios.length > 8) return false; // Muitos vícios de linguagem (era 5)
+    if (analises.repetidas.length > analises.palavras / 10) return false; // Muita repetição (era /20)
     return true;
 };
 
@@ -175,50 +175,56 @@ const verificarQualidadeMinima = (analises: ResultadoAnalise): boolean => {
 const isTextoMuitoBaixaQualidade = (analises: ResultadoAnalise): boolean => {
     const problemas = [];
 
-    // Contagem de problemas graves
-    if (analises.palavras < 80) problemas.push('muito-curto');
-    if (analises.paragrafos <= 1) problemas.push('sem-estrutura');
-    if (analises.vicios.length >= 3) problemas.push('muitos-vicios');
-    if (analises.repetidas.length >= 5) problemas.push('muita-repeticao');
-    if (parseFloat(analises.ttr) < 0.3) problemas.push('vocabulario-limitado');
-    if (analises.conectivos.length === 0) problemas.push('sem-conectivos');
+    // Contagem de problemas graves - critérios mais realistas
+    if (analises.palavras < 40) problemas.push('muito-curto'); // era 80
+    if (analises.paragrafos === 0) problemas.push('sem-estrutura'); // era <= 1
+    if (analises.vicios.length >= 5) problemas.push('muitos-vicios'); // era >= 3
+    if (analises.repetidas.length >= 8) problemas.push('muita-repeticao'); // era >= 5
+    if (parseFloat(analises.ttr) < 0.2) problemas.push('vocabulario-limitado'); // era < 0.3
+    if (analises.conectivos.length === 0 && analises.palavras > 100) problemas.push('sem-conectivos'); // só penaliza se texto maior
 
-    // Se tem 3 ou mais problemas graves, é de qualidade muito baixa
-    return problemas.length >= 3;
+    // Se tem 4 ou mais problemas graves, é de qualidade muito baixa (era 3)
+    return problemas.length >= 4;
 };
 
 // Funções de cálculo de notas com critérios mais rigorosos
 export const calcularNotaC1 = (analises: ResultadoAnalise): NotaCompetencia => {
     const detalhes: DetalhesNota[] = [];
 
-    // Verifica qualidade mínima
-    if (!verificarQualidadeMinima(analises)) {
-        detalhes.push({ item: 'Texto não atende critérios mínimos de qualidade', pontos: 0 });
+    // Verifica se há texto suficiente para avaliação
+    if (analises.palavras < 10) {
+        detalhes.push({ item: 'Texto insuficiente para avaliação', pontos: 0 });
         return { nota: 0, detalhes };
+    }
+
+    // Verifica qualidade mínima - critérios mais brandos
+    if (!verificarQualidadeMinima(analises)) {
+        detalhes.push({ item: 'Texto não atende critérios mínimos de qualidade', pontos: 40 });
+        return { nota: 40, detalhes };
     }
 
     // Verifica se é de qualidade muito baixa
     if (isTextoMuitoBaixaQualidade(analises)) {
-        detalhes.push({ item: 'Texto apresenta múltiplos problemas graves de norma culta', pontos: 40 });
-        return { nota: 40, detalhes };
+        detalhes.push({ item: 'Texto apresenta múltiplos problemas graves de norma culta', pontos: 80 });
+        return { nota: 80, detalhes };
     }
 
-    let nota = 120; // Começa com nota mediana, não máxima
+    let nota = 120; // Começa com nota mediana
 
-    // Penalidades mais severas
-    const penalidadeRepetidas = Math.min(analises.repetidas.length * 15, 60);
+    // Penalidades mais moderadas
+    const penalidadeRepetidas = Math.min(analises.repetidas.length * 10, 40); // era 15, 60
     if (penalidadeRepetidas > 0) {
         nota -= penalidadeRepetidas;
         detalhes.push({ item: `${analises.repetidas.length} tipo(s) de palavra repetida`, pontos: -penalidadeRepetidas });
     }
 
-    const penalidadeVicios = Math.min(analises.vicios.length * 25, 80);
+    const penalidadeVicios = Math.min(analises.vicios.length * 20, 60); // era 25, 80
     if (penalidadeVicios > 0) {
         nota -= penalidadeVicios;
         detalhes.push({ item: `${analises.vicios.length} vício(s) de linguagem`, pontos: -penalidadeVicios });
     }
 
-    const penalidadeFrasesLongas = Math.min(analises.frasesLongas.length * 15, 40);
+    const penalidadeFrasesLongas = Math.min(analises.frasesLongas.length * 10, 30); // era 15, 40
     if (penalidadeFrasesLongas > 0) {
         nota -= penalidadeFrasesLongas;
         detalhes.push({ item: `${analises.frasesLongas.length} frase(s) muito longa(s)`, pontos: -penalidadeFrasesLongas });
@@ -230,9 +236,31 @@ export const calcularNotaC1 = (analises: ResultadoAnalise): NotaCompetencia => {
         const bonus = Math.min(40, (ttr - 0.6) * 200);
         nota += bonus;
         detalhes.push({ item: 'Excelente domínio da norma culta', pontos: bonus });
+    } else if (ttr > 0.5 && analises.vicios.length === 0) {
+        const bonus = 20;
+        nota += bonus;
+        detalhes.push({ item: 'Bom domínio da norma culta', pontos: bonus });
     }
 
-    return { nota: Math.max(0, Math.min(200, nota)), detalhes };
+    // Garante que a nota esteja sempre entre 0 e 200
+    const notaFinal = Math.max(0, Math.min(200, nota));
+
+    // Explica quando a nota fica zerada
+    if (notaFinal === 0) {
+        const totalPenalidades = penalidadeRepetidas + penalidadeVicios + penalidadeFrasesLongas;
+        detalhes.push({
+            item: `Nota zerada: penalidades totais (${totalPenalidades} pts) superaram a nota base (120 pts)`,
+            pontos: 0
+        });
+        detalhes.push({
+            item: 'Para melhorar: reduza repetições, vícios de linguagem e frases muito longas',
+            pontos: 0
+        });
+    } else if (detalhes.length === 0) {
+        detalhes.push({ item: 'Domínio adequado da norma culta', pontos: notaFinal });
+    }
+
+    return { nota: notaFinal, detalhes };
 };
 
 export const calcularNotaC2 = (analises: ResultadoAnalise): NotaCompetencia => {
@@ -439,7 +467,8 @@ export const calcularNotaC5 = (analises: ResultadoAnalise): NotaCompetencia => {
     const elementosFaltando = 4 - elementosObrigatorios.filter(el => analises.intervencao[el]).length;
 
     if (elementosFaltando === 4) {
-        detalhes.push({ item: 'Nenhum elemento de proposta de intervenção encontrado', pontos: 0 });
+        detalhes.push({ item: 'Nenhum elemento de proposta de intervenção encontrado (agente, ação, meio, finalidade)', pontos: 0 });
+        detalhes.push({ item: 'Para obter pontos em C5, é necessário apresentar pelo menos 2 elementos', pontos: 0 });
         return { nota: 0, detalhes };
     }
 
