@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+/* Configuração básica de tema com variáveis CSS */
+:root {
+    --foreground-rgb: 0, 0, 0;
+    --background-start-rgb: 214, 219, 220;
+    --background-end-rgb: 255, 255, 255;
+}
+
+.dark {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 30, 30, 30;
+}
+
+/* Reset básico */
+* {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+html,
+body {
+    max-width: 100vw;
+    overflow-x: hidden;
+}
+
+/* Transições suaves para mudança de tema */
+html {
+    transition: background-color 0.3s ease;
+}
+
+body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgb(229, 231, 235);
+}
+
+.dark ::-webkit-scrollbar-track {
+    background: rgb(75, 85, 99);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgb(156, 163, 175);
+    border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background: rgb(107, 114, 128);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgb(107, 114, 128);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: rgb(156, 163, 175);
+}
+
+/* Firefox scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(156, 163, 175) rgb(229, 231, 235);
+}
+
+.dark * {
+    scrollbar-color: rgb(107, 114, 128) rgb(75, 85, 99);
+}

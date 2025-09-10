@@ -5,6 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 interface ThemeContextType {
     isDark: boolean;
     toggleTheme: () => void;
+    setTheme: (theme: 'light' | 'dark') => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -22,55 +23,82 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-    const [isDark, setIsDark] = useState(false);
-    const [mounted, setMounted] = useState(false);
+    const [isDark, setIsDark] = useState(true);
+    const [isInitialized, setIsInitialized] = useState(false);
 
-    // Carrega o tema salvo do localStorage na inicialização
+    // Inicialização do tema
     useEffect(() => {
-        setMounted(true);
         if (typeof window !== 'undefined') {
+            // Primeiro, aplica o tema dark por padrão
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
+
+            // Depois verifica o localStorage
             const savedTheme = localStorage.getItem('theme');
-            if (savedTheme === 'dark') {
-                setIsDark(true);
-            } else if (savedTheme === 'light') {
+
+            if (savedTheme === 'light') {
                 setIsDark(false);
+                document.documentElement.classList.remove('dark');
+                document.documentElement.style.colorScheme = 'light';
             } else {
-                // Se não há tema salvo, usa a preferência do sistema
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                setIsDark(prefersDark);
+                setIsDark(true);
+                localStorage.setItem('theme', 'dark'); // Garante que está salvo
             }
+
+            setIsInitialized(true);
         }
     }, []);
 
-    // Aplica o tema ao documento
-    useEffect(() => {
-        if (mounted && typeof window !== 'undefined') {
-            const root = document.documentElement;
-            if (isDark) {
-                root.classList.add('dark');
-                root.style.colorScheme = 'dark';
-            } else {
-                root.classList.remove('dark');
-                root.style.colorScheme = 'light';
-            }
-        }
-    }, [isDark, mounted]);
-
     const toggleTheme = () => {
-        const newTheme = !isDark;
-        setIsDark(newTheme);
         if (typeof window !== 'undefined') {
-            localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+            const newIsDark = !isDark;
+
+            if (newIsDark) {
+                document.documentElement.classList.add('dark');
+                document.documentElement.style.colorScheme = 'dark';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.style.colorScheme = 'light';
+                localStorage.setItem('theme', 'light');
+            }
+
+            setIsDark(newIsDark);
         }
     };
 
-    // Evita problemas de hidratação
-    if (!mounted) {
-        return <>{children}</>;
+    const setTheme = (theme: 'light' | 'dark') => {
+        if (typeof window !== 'undefined') {
+            const newIsDark = theme === 'dark';
+
+            if (newIsDark) {
+                document.documentElement.classList.add('dark');
+                document.documentElement.style.colorScheme = 'dark';
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.style.colorScheme = 'light';
+            }
+
+            localStorage.setItem('theme', theme);
+            setIsDark(newIsDark);
+        }
+    };
+
+    // Evita problemas de hidratação retornando um placeholder
+    if (!isInitialized) {
+        return (
+            <ThemeContext.Provider value={{
+                isDark: true,
+                toggleTheme: () => { },
+                setTheme: () => { }
+            }}>
+                {children}
+            </ThemeContext.Provider>
+        );
     }
 
     return (
-        <ThemeContext.Provider value={{ isDark, toggleTheme }}>
+        <ThemeContext.Provider value={{ isDark, toggleTheme, setTheme }}>
             {children}
         </ThemeContext.Provider>
     );

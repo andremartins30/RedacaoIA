@@ -368,7 +368,7 @@ const CorretorRedacao = () => {
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Nota1000</h1>
+                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">TextAI</h1>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Análise baseada nos critérios oficiais</p>
                         </div>
                         <div className="flex items-center space-x-4">
@@ -394,10 +394,16 @@ const CorretorRedacao = () => {
                             </button>
                             <button
                                 onClick={toggleTheme}
-                                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-                                title={isDark ? 'Modo claro' : 'Modo escuro'}
+                                className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
+                                title={isDark ? 'Alternar para modo claro' : 'Alternar para modo escuro'}
                             >
-                                {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                                <div className="relative">
+                                    {isDark ? (
+                                        <Sun className="h-5 w-5 transform transition-transform duration-300 rotate-0" />
+                                    ) : (
+                                        <Moon className="h-5 w-5 transform transition-transform duration-300 rotate-0" />
+                                    )}
+                                </div>
                             </button>
                         </div>
                     </div>
