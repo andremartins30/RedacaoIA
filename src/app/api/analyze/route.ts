@@ -54,8 +54,22 @@ const gerarFeedback = (relatorio: RelatorioNotas, analises: AnalisesTexto) => {
         geral: [] as string[]
     };
 
-    // Feedback C1 - Norma Culta
-    if (analises.repetidas.length > 0) {
+    // Feedback C1 - Norma Culta (mais rigoroso)
+    if (relatorio.c1.nota === 0) {
+        feedback.c1.push('Texto não atende aos critérios mínimos de norma culta.');
+    } else if (relatorio.c1.nota <= 40) {
+        feedback.c1.push('Domínio precário da norma culta. Revise gramática e ortografia.');
+    } else if (relatorio.c1.nota <= 80) {
+        feedback.c1.push('Domínio insuficiente da norma culta. Atenção a concordâncias e regências.');
+    } else if (relatorio.c1.nota <= 120) {
+        feedback.c1.push('Domínio mediano da norma culta. Continue aprimorando.');
+    } else if (relatorio.c1.nota <= 160) {
+        feedback.c1.push('Bom domínio da norma culta. Pequenos ajustes podem levar à excelência.');
+    } else {
+        feedback.c1.push('Excelente domínio da norma culta!');
+    }
+
+    if (analises.repetidas.length > 2) {
         feedback.c1.push(`Evite repetir palavras: ${analises.repetidas.slice(0, 3).map((r) => r.palavra).join(', ')}`);
     }
     if (analises.vicios.length > 0) {
@@ -64,63 +78,117 @@ const gerarFeedback = (relatorio: RelatorioNotas, analises: AnalisesTexto) => {
     if (analises.frasesLongas.length > 0) {
         feedback.c1.push(`${analises.frasesLongas.length} frase(s) muito longa(s). Prefira períodos mais concisos.`);
     }
-    if (relatorio.c1.nota >= 160) {
-        feedback.c1.push('Excelente domínio da norma culta!');
+
+    // Feedback C2 - Estrutura (mais rigoroso)
+    if (relatorio.c2.nota === 0) {
+        feedback.c2.push('Texto não apresenta estrutura dissertativa válida.');
+    } else if (relatorio.c2.nota <= 40) {
+        feedback.c2.push('Estrutura textual inadequada. Texto muito curto ou desorganizado.');
+    } else if (relatorio.c2.nota <= 80) {
+        feedback.c2.push('Estrutura textual insuficiente. Organize melhor em 4-5 parágrafos.');
+    } else if (relatorio.c2.nota <= 120) {
+        feedback.c2.push('Estrutura textual mediana. Pequenos ajustes na organização.');
+    } else if (relatorio.c2.nota <= 160) {
+        feedback.c2.push('Boa estrutura textual. Mantém organização clara.');
+    } else {
+        feedback.c2.push('Excelente estrutura textual!');
     }
 
-    // Feedback C2 - Estrutura
     if (analises.palavras < 150) {
-        feedback.c2.push('Texto muito curto. Desenvolva melhor suas ideias para atingir pelo menos 150 palavras.');
+        feedback.c2.push(`Texto muito curto (${analises.palavras} palavras). Desenvolva melhor suas ideias.`);
     }
     if (analises.paragrafos < 4) {
         feedback.c2.push('Texto precisa de mais parágrafos. Organize as ideias em 4-5 parágrafos.');
-    } else if (analises.paragrafos > 5) {
-        feedback.c2.push('Muitos parágrafos. Tente organizar as ideias em 4-5 parágrafos.');
-    }
-    if (relatorio.c2.nota >= 160) {
-        feedback.c2.push('Ótima estrutura textual!');
     }
 
-    // Feedback C3 - Argumentação
+    // Feedback C3 - Argumentação (mais rigoroso)
+    if (relatorio.c3.nota === 0) {
+        feedback.c3.push('Texto não apresenta argumentação válida.');
+    } else if (relatorio.c3.nota <= 60) {
+        feedback.c3.push('Argumentação precária. Desenvolva melhor seus argumentos.');
+    } else if (relatorio.c3.nota <= 100) {
+        feedback.c3.push('Argumentação insuficiente. Use mais estratégias argumentativas.');
+    } else if (relatorio.c3.nota <= 140) {
+        feedback.c3.push('Argumentação mediana. Continue aprimorando.');
+    } else if (relatorio.c3.nota <= 180) {
+        feedback.c3.push('Boa argumentação. Pequenos ajustes podem melhorar ainda mais.');
+    } else {
+        feedback.c3.push('Excelente argumentação!');
+    }
+
     const ttr = parseFloat(analises.ttr);
-    if (ttr < 0.45) {
+    if (ttr < 0.4) {
+        feedback.c3.push('Varie muito mais o vocabulário para enriquecer a argumentação.');
+    } else if (ttr < 0.5) {
         feedback.c3.push('Varie mais o vocabulário para enriquecer a argumentação.');
     }
-    if (analises.marcadores.length < 3) {
+
+    if (analises.marcadores.length < 2) {
         feedback.c3.push('Use mais marcadores argumentativos como "segundo", "por exemplo", "além disso".');
     }
-    if (ttr >= 0.65) {
-        feedback.c3.push('Excelente riqueza lexical!');
+
+    // Feedback C4 - Coesão (mais rigoroso)
+    if (relatorio.c4.nota === 0) {
+        feedback.c4.push('Texto não apresenta coesão mínima entre as ideias.');
+    } else if (relatorio.c4.nota <= 40) {
+        feedback.c4.push('Coesão precária. Use conectivos para ligar suas ideias.');
+    } else if (relatorio.c4.nota <= 80) {
+        feedback.c4.push('Coesão insuficiente. Aumente o uso de conectivos adequados.');
+    } else if (relatorio.c4.nota <= 120) {
+        feedback.c4.push('Coesão adequada. Continue aprimorando as ligações entre ideias.');
+    } else if (relatorio.c4.nota <= 160) {
+        feedback.c4.push('Boa coesão textual. Mantém as ideias bem conectadas.');
+    } else {
+        feedback.c4.push('Excelente coesão textual!');
     }
 
-    // Feedback C4 - Coesão
-    if (analises.conectivos.length < 3) {
+    if (analises.conectivos.length < 2) {
         feedback.c4.push('Use mais conectivos para melhorar a coesão textual.');
-    } else if (analises.conectivos.length >= 7) {
-        feedback.c4.push('Excelente uso de conectivos! Isso melhora muito a coesão do texto.');
     }
 
-    // Feedback C5 - Proposta de Intervenção
+    // Feedback C5 - Proposta de Intervenção (mais rigoroso)
+    if (relatorio.c5.nota === 0) {
+        feedback.c5.push('Proposta de intervenção ausente ou inválida.');
+    } else if (relatorio.c5.nota <= 40) {
+        feedback.c5.push('Proposta muito precária. Inclua agente, ação, meio e finalidade.');
+    } else if (relatorio.c5.nota <= 80) {
+        feedback.c5.push('Proposta incompleta. Faltam elementos essenciais.');
+    } else if (relatorio.c5.nota <= 120) {
+        feedback.c5.push('Proposta adequada, mas pode ser mais detalhada.');
+    } else if (relatorio.c5.nota <= 160) {
+        feedback.c5.push('Boa proposta de intervenção. Bem estruturada.');
+    } else {
+        feedback.c5.push('Excelente proposta de intervenção!');
+    }
+
     const elementosIntervencao = Object.values(analises.intervencao).filter(Boolean).length;
     if (elementosIntervencao < 3) {
-        feedback.c5.push('A proposta de intervenção precisa ser mais detalhada. Inclua agente, ação, meio, finalidade e detalhamento.');
-    }
-    if (elementosIntervencao >= 4) {
-        feedback.c5.push('Boa proposta de intervenção!');
+        feedback.c5.push('A proposta precisa incluir: agente, ação, meio, finalidade e detalhamento.');
     }
 
-    // Feedback geral
-    if (analises.palavras >= 150 && analises.paragrafos >= 4 && analises.paragrafos <= 5) {
-        feedback.geral.push('Boa estrutura textual! Mantenha essa organização.');
-    }
-    if (relatorio.total >= 800) {
-        feedback.geral.push('Excelente redação! Continue praticando para manter esse nível.');
-    } else if (relatorio.total >= 600) {
-        feedback.geral.push('Boa redação! Com algumas melhorias pode chegar a uma nota ainda melhor.');
-    } else if (relatorio.total >= 400) {
-        feedback.geral.push('Redação precisa de melhorias. Foque nos pontos destacados acima.');
+    // Feedback geral (mais rigoroso)
+    if (relatorio.total === 0) {
+        feedback.geral.push('Texto inválido. Não atende aos critérios mínimos de uma redação dissertativa.');
+    } else if (relatorio.total < 200) {
+        feedback.geral.push('Redação muito abaixo do esperado. Revise todos os fundamentos da escrita dissertativa.');
+    } else if (relatorio.total < 400) {
+        feedback.geral.push('Redação precisa de muito trabalho. Foque nos pontos críticos destacados.');
+    } else if (relatorio.total < 600) {
+        feedback.geral.push('Redação em desenvolvimento. Continue praticando os pontos destacados.');
+    } else if (relatorio.total < 800) {
+        feedback.geral.push('Boa redação! Com melhorias pontuais pode alcançar nota ainda melhor.');
     } else {
-        feedback.geral.push('Redação precisa de bastante trabalho. Revise os fundamentos da escrita dissertativa.');
+        feedback.geral.push('Excelente redação! Continue mantendo esse padrão de qualidade.');
+    }
+
+    // Dica específica baseada na maior deficiência
+    const notas = [relatorio.c1.nota, relatorio.c2.nota, relatorio.c3.nota, relatorio.c4.nota, relatorio.c5.nota];
+    const menorNota = Math.min(...notas);
+    const competenciaFraca = notas.indexOf(menorNota) + 1;
+
+    if (menorNota < 120) {
+        const competencias = ['norma culta', 'estrutura textual', 'argumentação', 'coesão', 'proposta de intervenção'];
+        feedback.geral.push(`Foque especialmente na competência ${competenciaFraca} (${competencias[competenciaFraca - 1]}).`);
     }
 
     return feedback;
