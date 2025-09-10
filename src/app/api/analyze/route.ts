@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analisarTextoCompleto, gerarRelatorioDeNotas, RelatorioNotas } from '@/lib/analyzer';
+import { analisarRedacaoComGemini, gerarSugestoesDetalhadas, analisarRedacaoSimplificada, AnaliseGemini } from '@/lib/gemini';
 
 // Interface para o resultado da análise
 interface ResultadoAnalise {
@@ -29,6 +30,8 @@ interface ResultadoAnalise {
         geral: string[];
     };
     relatorio: RelatorioNotas;
+    analiseGemini?: AnaliseGemini | null;
+    sugestoesIA?: string[];
 }
 
 // Interface para as análises do texto
@@ -214,6 +217,37 @@ export async function POST(request: NextRequest) {
         // Gera feedback personalizado
         const feedback = gerarFeedback(relatorio, analises);
 
+        // Executar análises do Gemini de forma sequencial para economizar cota
+        let analiseGemini: AnaliseGemini | null = null;
+        let sugestoesIA: string[] = [];
+
+        try {
+            // Primeira tentativa - análise principal (mais importante)
+            analiseGemini = await analisarRedacaoComGemini(texto);
+
+            // Segunda tentativa - sugestões detalhadas (só se a primeira funcionou)
+            if (analiseGemini) {
+                sugestoesIA = await gerarSugestoesDetalhadas(texto, {
+                    c1: relatorio.c1.nota,
+                    c2: relatorio.c2.nota,
+                    c3: relatorio.c3.nota,
+                    c4: relatorio.c4.nota,
+                    c5: relatorio.c5.nota,
+                    total: relatorio.total
+                });
+            }
+        } catch (error: unknown) {
+            console.warn('Tentativa de análise IA completa falhou, tentando versão simplificada...', error);
+
+            // Fallback: tentar análise simplificada se a completa falhar
+            try {
+                analiseGemini = await analisarRedacaoSimplificada(texto);
+                console.log('Análise IA simplificada executada com sucesso');
+            } catch {
+                console.warn('Análise IA completamente indisponível devido a limitações de cota');
+            }
+        }
+
         // Resultado final
         const resultado: ResultadoAnalise = {
             competencias: {
@@ -234,7 +268,9 @@ export async function POST(request: NextRequest) {
             ttr: analises.ttr,
             marcadores: analises.marcadores,
             feedback,
-            relatorio
+            relatorio,
+            analiseGemini,
+            sugestoesIA
         };
 
         return NextResponse.json(resultado);

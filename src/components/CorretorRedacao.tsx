@@ -31,6 +31,43 @@ interface ResultadoAnalise {
         geral: string[];
     };
     relatorio?: unknown;
+    analiseGemini?: {
+        competencia1: {
+            nota: number;
+            feedback: string[];
+            pontosFortes: string[];
+            pontosFrageis: string[];
+        };
+        competencia2: {
+            nota: number;
+            feedback: string[];
+            pontosFortes: string[];
+            pontosFrageis: string[];
+        };
+        competencia3: {
+            nota: number;
+            feedback: string[];
+            pontosFortes: string[];
+            pontosFrageis: string[];
+        };
+        competencia4: {
+            nota: number;
+            feedback: string[];
+            pontosFortes: string[];
+            pontosFrageis: string[];
+        };
+        competencia5: {
+            nota: number;
+            feedback: string[];
+            pontosFortes: string[];
+            pontosFrageis: string[];
+        };
+        notaFinal: number;
+        feedbackGeral: string[];
+        sugestoesDetalhadas: string[];
+        analiseQualitativa: string;
+    } | null;
+    sugestoesIA?: string[];
 }
 
 const CorretorRedacao = () => {
@@ -358,6 +395,81 @@ const CorretorRedacao = () => {
                                                 ) : (
                                                     <div className="text-gray-500 dark:text-gray-400">Nenhuma sugestão específica disponível</div>
                                                 )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Análise IA do Gemini */}
+                                    {resultado.analiseGemini ? (
+                                        <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border border-blue-200 dark:border-blue-700 shadow-sm p-6">
+                                            <div className="flex items-center space-x-2 mb-4">
+                                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                                <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Análise IA - Gemini</h3>
+                                            </div>
+
+                                            {/* Nota da IA */}
+                                            <div className="text-center mb-4">
+                                                <div className="text-2xl font-bold text-blue-900 dark:text-blue-100 mb-1">
+                                                    {resultado.analiseGemini.notaFinal}/1000
+                                                </div>
+                                                <div className="text-xs text-blue-700 dark:text-blue-300">Avaliação IA</div>
+                                            </div>
+
+                                            {/* Feedback da IA - Resumido */}
+                                            {resultado.analiseGemini.feedbackGeral && resultado.analiseGemini.feedbackGeral.length > 0 && (
+                                                <div className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
+                                                    {resultado.analiseGemini.feedbackGeral.slice(0, 2).map((feedback: string, index: number) => (
+                                                        <div key={index} className="flex items-start space-x-2">
+                                                            <div className="w-1 h-1 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                            <span>{feedback}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        /* Aviso quando IA não está disponível */
+                                        <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-lg border border-amber-200 dark:border-amber-700 shadow-sm p-6">
+                                            <div className="flex items-center space-x-2 mb-4">
+                                                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                                <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">Análise IA - Temporariamente Indisponível</h3>
+                                            </div>
+                                            <div className="space-y-2 text-sm text-amber-800 dark:text-amber-200">
+                                                <div className="flex items-start space-x-2">
+                                                    <div className="w-1 h-1 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                    <span>Serviço Gemini temporariamente sobrecarregado ou cota esgotada.</span>
+                                                </div>
+                                                <div className="flex items-start space-x-2">
+                                                    <div className="w-1 h-1 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                    <span>A análise tradicional continua funcionando normalmente.</span>
+                                                </div>
+                                                <div className="flex items-start space-x-2">
+                                                    <div className="w-1 h-1 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                    <span>Sistema fez 3 tentativas automáticas com intervalo inteligente.</span>
+                                                </div>
+                                                <div className="flex items-start space-x-2">
+                                                    <div className="w-1 h-1 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                    <span>Tente novamente em alguns minutos.</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Sugestões Detalhadas da IA */}
+                                    {resultado.sugestoesIA && resultado.sugestoesIA.length > 0 && (
+                                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-700 shadow-sm p-6">
+                                            <div className="flex items-center space-x-2 mb-4">
+                                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                <h3 className="text-sm font-semibold text-green-900 dark:text-green-100">Sugestões IA Detalhadas</h3>
+                                            </div>
+
+                                            <div className="space-y-2 text-sm text-green-800 dark:text-green-200">
+                                                {resultado.sugestoesIA.slice(0, 3).map((sugestao: string, index: number) => (
+                                                    <div key={index} className="flex items-start space-x-2">
+                                                        <div className="w-1 h-1 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                        <span>{sugestao}</span>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     )}
