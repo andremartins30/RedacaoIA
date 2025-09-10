@@ -8,8 +8,5 @@
     "src/app/api/**/*.ts": {
       "maxDuration": 30
     }
-  },
-  "env": {
-    "GOOGLE_API_KEY": "@google-api-key"
   }
 }
