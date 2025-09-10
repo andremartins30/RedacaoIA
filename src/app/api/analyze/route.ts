@@ -5,7 +5,6 @@ import {
     RelatorioNotas,
     calcularConsenso,
     sugerirConfiguracaoConsenso,
-    CONFIGURACOES_CONSENSO,
     ResultadoConsenso
 } from '@/lib/analyzer';
 import { analisarRedacaoComGemini, gerarSugestoesDetalhadas, analisarRedacaoSimplificada, AnaliseGemini } from '@/lib/gemini';

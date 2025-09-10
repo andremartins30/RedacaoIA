@@ -1,0 +1,15 @@
+{
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_NODE_ENV": "production"
+    }
+  },
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "GOOGLE_API_KEY": "@google-api-key"
+  }
+}

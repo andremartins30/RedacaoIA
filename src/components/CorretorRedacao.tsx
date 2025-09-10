@@ -80,7 +80,18 @@ interface ResultadoAnalise {
         };
         detalhesConsenso: {
             metodologia: string;
-            configuracao: any;
+            configuracao: {
+                pesoProfessor: number;
+                pesoIA: number;
+                nivelRigidez: string;
+                ajustesPorCompetencia: {
+                    c1: number;
+                    c2: number;
+                    c3: number;
+                    c4: number;
+                    c5: number;
+                };
+            };
             explicacao: string[];
         };
     };
