@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useId, useEffect } from 'react';
-import { Upload, BarChart3, Award, Camera, Type, Moon, Sun } from 'lucide-react';
+import { Upload, BarChart3, Award, Camera, Type, Moon, Sun, Loader2 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useVisionOCR } from '@/hooks/useIsClient';
+import { processImageWithVision, processImageFallback, OCRProgress } from '@/lib/ocr-vision';
 import type { RelatorioNotas, DetalhesNota } from '@/lib/analyzer';
 
 interface ResultadoAnalise {
@@ -104,7 +106,11 @@ const CorretorRedacao = () => {
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('text');
     const [ocrLoading, setOcrLoading] = useState(false);
+    const [ocrProgress, setOcrProgress] = useState<OCRProgress | null>(null);
+    const [useClientOCR, setUseClientOCR] = useState(true);
+
     const { isDark, toggleTheme } = useTheme();
+    const { isReady: visionReady, isClient } = useVisionOCR();
 
     // Mapa das competências ENEM com suas descrições completas
     const competenciasENEM = {
@@ -273,6 +279,100 @@ const CorretorRedacao = () => {
         });
     };
 
+    const processarImagemComVision = async (file: File) => {
+        if (!visionReady) {
+            alert('OCR ainda não está pronto. Tente novamente em alguns segundos.');
+            return;
+        }
+
+        setOcrLoading(true);
+        setOcrProgress({ status: 'Iniciando OCR com Google Vision...', progress: 0 });
+
+        try {
+            // Converte para base64
+            const base64 = await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(file);
+            });
+
+            const result = await processImageWithVision(base64, (progress: OCRProgress) => {
+                setOcrProgress(progress);
+            });
+
+            setTexto(result.text);
+            setActiveTab('text');
+
+            // Mostra estatísticas do OCR
+            const methodText = result.method === 'google-vision' ? '🚀 Google Vision AI' : '🔧 Processamento Local';
+            alert(
+                `✅ Texto extraído com sucesso!\n` +
+                `🤖 Método: ${methodText}\n` +
+                `📝 ${result.wordCount} palavras detectadas\n` +
+                `⏱️ Processamento: ${result.processingTime}s\n` +
+                `🎯 Confiança: ${Math.round(result.confidence * 100)}%`
+            );
+
+        } catch (error) {
+            console.error('Erro no OCR com Google Vision:', error);
+
+            // Fallback para processamento local
+            if (useClientOCR) {
+                alert('Erro no Google Vision. Tentando processamento local...');
+                await processarImagemFallback(file);
+            } else {
+                alert('Erro ao processar a imagem. Verifique se a imagem contém texto legível.');
+            }
+        } finally {
+            setOcrLoading(false);
+            setOcrProgress(null);
+        }
+    };
+
+    const processarImagemFallback = async (file: File) => {
+        try {
+            const base64 = await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(file);
+            });
+
+            const result = await processImageFallback(base64, (progress: OCRProgress) => {
+                setOcrProgress(progress);
+            });
+
+            setTexto(result.text);
+            setActiveTab('text');
+
+            alert(`📄 Texto extraído (modo local)\n📝 ${result.wordCount} palavras`);
+        } catch (error) {
+            console.error('Erro no fallback OCR:', error);
+            alert('Erro ao processar a imagem. Tente uma imagem com melhor qualidade.');
+        }
+    };
+
+    const processarImagem = async (file: File) => {
+        if (!file) return;
+
+        // Validações
+        if (file.size > 10 * 1024 * 1024) { // 10MB
+            alert('Arquivo muito grande. Máximo 10MB.');
+            return;
+        }
+
+        if (!file.type.startsWith('image/')) {
+            alert('Arquivo deve ser uma imagem (JPG, PNG, WebP).');
+            return;
+        }
+
+        // Usa Google Vision se disponível, senão fallback local
+        if (isClient && visionReady && useClientOCR) {
+            await processarImagemComVision(file);
+        } else {
+            await processarImagemFallback(file);
+        }
+    };
+
     const analisarTexto = async () => {
         if (!texto.trim()) {
             alert('Por favor, insira um texto para análise.');
@@ -303,45 +403,6 @@ const CorretorRedacao = () => {
             alert('Erro ao analisar o texto. Tente novamente.');
         } finally {
             setLoading(false);
-        }
-    };
-
-    const processarImagem = async (file: File) => {
-        if (!file) return;
-
-        setOcrLoading(true);
-
-        try {
-            // Converter para base64
-            const base64 = await new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.readAsDataURL(file);
-            });
-
-            const response = await fetch('/api/ocr', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ image: base64, type: 'base64' }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Erro no OCR');
-            }
-
-            const data = await response.json();
-            setTexto(data.text);
-            setActiveTab('text'); // Muda para a aba de texto
-
-            // Mostra notificação de sucesso
-            alert(`Texto extraído com sucesso! ${data.wordCount} palavras detectadas.`);
-        } catch (error) {
-            console.error('Erro no OCR:', error);
-            alert('Erro ao processar a imagem. Tente novamente.');
-        } finally {
-            setOcrLoading(false);
         }
     };
 
@@ -420,12 +481,35 @@ const CorretorRedacao = () => {
                             <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Editor de Redação</h2>
-                                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                                    <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                                        {/* Status do Google Vision */}
+                                        {isClient && (
+                                            <div className={`flex items-center space-x-1 ${visionReady ? 'text-green-600' : 'text-amber-600'}`}>
+                                                <div className={`w-2 h-2 rounded-full ${visionReady ? 'bg-green-500' : 'bg-amber-500'}`}></div>
+                                                <span className="text-xs">Vision AI {visionReady ? 'Pronto' : 'Carregando...'}</span>
+                                            </div>
+                                        )}
                                         <span>{texto.split(/\s+/).filter(Boolean).length} palavras</span>
                                         <span className="mx-2">•</span>
                                         <span>{texto.split('\n').length} linhas</span>
                                     </div>
                                 </div>
+
+                                {/* Barra de progresso OCR */}
+                                {ocrProgress && (
+                                    <div className="mt-3">
+                                        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                            <span>{ocrProgress.status}</span>
+                                            <span>{Math.round(ocrProgress.progress * 100)}%</span>
+                                        </div>
+                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                            <div
+                                                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                                style={{ width: `${ocrProgress.progress * 100}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Editor com Contador de Linhas */}
