@@ -6,7 +6,7 @@ interface VisionOCRResponse {
     confidence: number;
     wordCount: number;
     processingTime: string;
-    method: 'google-vision' | 'fallback';
+    method: 'google-vision';
     correctionApplied?: boolean;
 }
 
@@ -25,28 +25,41 @@ export async function POST(request: NextRequest) {
 
         const apiKey = process.env.GOOGLE_VISION_API_KEY;
 
-        if (apiKey) {
-            console.log('🔑 Usando Google Vision API Key');
-            try {
-                const visionResult = await processWithVisionAPI(image, apiKey, startTime);
-                return NextResponse.json(visionResult);
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : String(error);
-
-                if (errorMessage.includes('BILLING_REQUIRED')) {
-                    console.error('💳 Erro de faturamento - Google Cloud precisa de faturamento ativo');
-                    console.log('📝 Usando fallback enquanto faturamento não é ativado');
-                } else {
-                    console.error('❌ Erro no Google Vision API:', error);
-                }
-            }
-        } else {
+        if (!apiKey) {
             console.log('⚠️ GOOGLE_VISION_API_KEY não encontrada no .env.local');
+            return NextResponse.json(
+                { error: 'Google Vision API não configurado. Configure a chave de API para usar o serviço de OCR.' },
+                { status: 503 }
+            );
         }
 
-        console.log('📝 Usando fallback - configure GOOGLE_VISION_API_KEY');
-        const fallbackResult = await handleFallbackOCR(startTime);
-        return NextResponse.json(fallbackResult);
+        console.log('🔑 Usando Google Vision API Key');
+        try {
+            const visionResult = await processWithVisionAPI(image, apiKey, startTime);
+            return NextResponse.json(visionResult);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error('❌ Erro no Google Vision API:', error);
+
+            if (errorMessage.includes('BILLING_REQUIRED')) {
+                return NextResponse.json(
+                    { error: 'Google Cloud precisa de faturamento ativo. Configure o faturamento no Google Cloud Console.' },
+                    { status: 402 }
+                );
+            }
+
+            if (errorMessage.includes('Nenhum texto detectado') || errorMessage.includes('Texto vazio detectado')) {
+                return NextResponse.json(
+                    { error: 'O Google Vision não conseguiu identificar texto na imagem. Por favor, envie uma imagem com texto mais legível ou redija o texto manualmente.' },
+                    { status: 422 }
+                );
+            }
+
+            return NextResponse.json(
+                { error: 'Erro ao processar a imagem com Google Vision. Tente novamente ou use uma imagem de melhor qualidade.' },
+                { status: 500 }
+            );
+        }
 
     } catch (error) {
         console.error('❌ Erro geral na API:', error);
@@ -210,32 +223,6 @@ async function processWithVisionAPI(imageBase64: string, apiKey: string, startTi
     };
 }
 
-async function handleFallbackOCR(startTime: number): Promise<VisionOCRResponse> {
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    // Texto com alguns erros propositais para demonstrar a pré-correção
-    const sampleText = `A tecnolgia na educação brasielira tem gerado transformaçoes significativas nos métodos de ensino e aprendizagem contemporaneos.
-
-As plataformas digitais democratizam o acesso ao conheicmento, eliminando barreiras geográficas e socioeconômicas que historicamente limitavam oportunidades educacionais. Estudantes de regioes remotas podem acessar conteudos de universidades renomadas.
-
-Contudo, a dependencia excessiva da tecnolgia apresenta riscos consideraveis para o desenvolvimento de habilidades sociais e cognitivas essenciais. Pesquisas indicam correlaçao entre uso intensivo de dispositivos e problemas de concentração em jovens.
-
-Portanto, faz-se necessario que o poder publico implemente politicas educacionais equilibradas. Mediante investimentos em capacitação docente e infraestrutura tecnologica, será possivel maximizar beneficios educacionais minimizando impactos negativos no desenvolvimento humano.`;
-
-    // Aplica pré-correção ortográfica também no fallback
-    const { text: correctedText, corrected } = await preCorrectTextWithGemini(sampleText);
-    const processingTime = ((Date.now() - startTime) / 1000).toFixed(1);
-
-    return {
-        text: correctedText,
-        confidence: 0.85,
-        wordCount: correctedText.split(/\s+/).filter(Boolean).length,
-        processingTime: `${processingTime}s`,
-        method: 'fallback',
-        correctionApplied: corrected
-    };
-}
-
 function postProcessPortugueseText(text: string): string {
     let processed = text;
 
@@ -268,7 +255,7 @@ export async function GET() {
         name: 'Google Vision OCR API',
         version: '2.0.0',
         description: 'API para extração de texto usando Google Cloud Vision AI',
-        status: hasApiKey ? 'ready' : 'fallback-mode',
+        status: hasApiKey ? 'ready' : 'not-configured',
         setup: {
             apiKey: hasApiKey ? 'configured ✅' : 'missing ❌ - adicione GOOGLE_VISION_API_KEY no .env.local',
             instructions: 'Ver GOOGLE_VISION_SETUP.md para configurar'
@@ -278,7 +265,8 @@ export async function GET() {
             'Google Cloud Vision AI',
             'Otimizado para manuscritos em português',
             'Pós-processamento inteligente',
-            'Fallback automático'
+            'Pré-correção ortográfica com Gemini',
+            'Detecção de texto ilegível'
         ]
     });
 }

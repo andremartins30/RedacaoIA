@@ -490,8 +490,6 @@ const CorretorRedacao = () => {
                                             </div>
                                         )}
                                         <span>{texto.split(/\s+/).filter(Boolean).length} palavras</span>
-                                        <span className="mx-2">•</span>
-                                        <span>{texto.split('\n').length} linhas</span>
                                     </div>
                                 </div>
 
@@ -512,29 +510,17 @@ const CorretorRedacao = () => {
                                 )}
                             </div>
 
-                            {/* Editor com Contador de Linhas */}
+                            {/* Editor de Texto */}
                             <div className="relative">
                                 {activeTab === 'text' ? (
-                                    <div className="flex bg-gray-50 dark:bg-gray-700">
-                                        {/* Contador de Linhas */}
-                                        <div className="bg-gray-100 dark:bg-gray-600 border-r border-gray-300 dark:border-gray-500 px-3 py-4 text-xs text-gray-600 dark:text-gray-300 font-mono leading-6 select-none min-w-[40px]">
-                                            {Array.from({ length: Math.max(1, texto.split('\n').length) }, (_, index) => (
-                                                <div key={`line-${index}`} className="h-6 flex items-center justify-end">
-                                                    {index + 1}
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        {/* Área de Texto */}
-                                        <div className="flex-1 bg-white dark:bg-gray-800">
-                                            <textarea
-                                                value={texto}
-                                                onChange={(e) => setTexto(e.target.value)}
-                                                placeholder="Digite sua redação aqui...&#10;&#10;Dicas:&#10;• Use parágrafos bem estruturados&#10;• Evite repetir palavras&#10;• Use conectivos para melhorar a coesão&#10;• Mínimo de 150 palavras para análise completa"
-                                                className="w-full h-96 p-4 border-0 resize-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none leading-6 text-sm bg-transparent"
-                                                style={{ fontFamily: 'Arial, sans-serif' }}
-                                            />
-                                        </div>
+                                    <div className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg">
+                                        <textarea
+                                            value={texto}
+                                            onChange={(e) => setTexto(e.target.value)}
+                                            placeholder="Digite sua redação aqui...&#10;&#10;Dicas:&#10;• Use parágrafos bem estruturados&#10;• Evite repetir palavras&#10;• Use conectivos para melhorar a coesão&#10;• Mínimo de 150 palavras para análise completa"
+                                            className="w-full h-96 p-4 border-0 resize-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none leading-6 text-sm bg-transparent rounded-lg"
+                                            style={{ fontFamily: 'Arial, sans-serif' }}
+                                        />
                                     </div>
                                 ) : (
                                     <div className="p-12 text-center">
@@ -605,43 +591,147 @@ const CorretorRedacao = () => {
 
                         {/* Revisão do Texto - Posicionada abaixo do editor */}
                         {resultado && (
-                            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 shadow-md">
-                                <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-                                    <div className="flex items-center space-x-2">
-                                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Revisão do Texto</h2>
-                                    </div>
-                                </div>
-
-                                <div className="p-6">
-                                    {/* Legenda das marcações - cores melhoradas */}
-                                    <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                                        <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                                            🏷️ Legenda das Marcações:
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                                            <div className="flex items-center space-x-2 bg-white dark:bg-gray-600 p-2 rounded border">
-                                                <div className="w-4 h-4 bg-yellow-300 dark:bg-yellow-500 rounded border border-yellow-400 dark:border-yellow-600"></div>
-                                                <span className="text-gray-700 dark:text-gray-200 font-medium">Repetições</span>
-                                            </div>
-                                            <div className="flex items-center space-x-2 bg-white dark:bg-gray-600 p-2 rounded border">
-                                                <div className="w-4 h-4 bg-red-300 dark:bg-red-500 rounded border border-red-400 dark:border-red-600"></div>
-                                                <span className="text-gray-700 dark:text-gray-200 font-medium">Vícios de linguagem</span>
-                                            </div>
-                                            <div className="flex items-center space-x-2 bg-white dark:bg-gray-600 p-2 rounded border">
-                                                <div className="w-4 h-4 bg-orange-300 dark:bg-orange-500 rounded border border-orange-400 dark:border-orange-600"></div>
-                                                <span className="text-gray-700 dark:text-gray-200 font-medium">Frases longas</span>
-                                            </div>
+                            <div className="space-y-6">
+                                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 shadow-md">
+                                    <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+                                        <div className="flex items-center space-x-2">
+                                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Revisão do Texto</h2>
                                         </div>
                                     </div>
 
-                                    {/* Texto com marcações - melhor contraste */}
-                                    <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 max-h-96 overflow-y-auto">
-                                        <div className="text-gray-800 dark:text-gray-100 leading-relaxed">
-                                            {renderizarTextoComMarcacoes()}
+                                    <div className="p-6">
+                                        {/* Legenda das marcações - cores melhoradas */}
+                                        <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                                            <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                                                🏷️ Legenda das Marcações:
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                                                <div className="flex items-center space-x-2 bg-white dark:bg-gray-600 p-2 rounded border">
+                                                    <div className="w-4 h-4 bg-yellow-300 dark:bg-yellow-500 rounded border border-yellow-400 dark:border-yellow-600"></div>
+                                                    <span className="text-gray-700 dark:text-gray-200 font-medium">Repetições</span>
+                                                </div>
+                                                <div className="flex items-center space-x-2 bg-white dark:bg-gray-600 p-2 rounded border">
+                                                    <div className="w-4 h-4 bg-red-300 dark:bg-red-500 rounded border border-red-400 dark:border-red-600"></div>
+                                                    <span className="text-gray-700 dark:text-gray-200 font-medium">Vícios de linguagem</span>
+                                                </div>
+                                                <div className="flex items-center space-x-2 bg-white dark:bg-gray-600 p-2 rounded border">
+                                                    <div className="w-4 h-4 bg-orange-300 dark:bg-orange-500 rounded border border-orange-400 dark:border-orange-600"></div>
+                                                    <span className="text-gray-700 dark:text-gray-200 font-medium">Frases longas</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Texto com marcações - melhor contraste */}
+                                        <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 max-h-96 overflow-y-auto">
+                                            <div className="text-gray-800 dark:text-gray-100 leading-relaxed">
+                                                {renderizarTextoComMarcacoes()}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Análise da IA - Movida para abaixo da revisão */}
+                                {resultado.analiseGemini ? (
+                                    <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border border-blue-200 dark:border-blue-700 shadow-md">
+                                        <div className="border-b border-blue-200 dark:border-blue-700 px-6 py-4">
+                                            <div className="flex items-center space-x-2">
+                                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                                <h2 className="text-lg font-semibold text-blue-900 dark:text-blue-100">Análise da IA</h2>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-6">
+                                            {/* Nota da IA */}
+                                            <div className="text-center mb-6">
+                                                <div className="text-3xl font-bold text-blue-900 dark:text-blue-100 mb-2">
+                                                    {resultado.analiseGemini.notaFinal}/1000
+                                                </div>
+                                                <div className="text-sm text-blue-700 dark:text-blue-300">Avaliação da Inteligência Artificial</div>
+                                            </div>
+
+                                            {/* Feedback da IA - Completo */}
+                                            {resultado.analiseGemini.feedbackGeral && resultado.analiseGemini.feedbackGeral.length > 0 && (
+                                                <div className="mb-6">
+                                                    <h3 className="text-base font-semibold text-blue-900 dark:text-blue-100 mb-3">Feedback Geral</h3>
+                                                    <div className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
+                                                        {resultado.analiseGemini.feedbackGeral.map((feedback: string, index: number) => (
+                                                            <div key={index} className="flex items-start space-x-3 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                                                                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                                <span className="leading-relaxed">{feedback}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Análise Qualitativa */}
+                                            {resultado.analiseGemini.analiseQualitativa && (
+                                                <div className="mb-6">
+                                                    <h3 className="text-base font-semibold text-blue-900 dark:text-blue-100 mb-3">Análise Qualitativa</h3>
+                                                    <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                                                        <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
+                                                            {resultado.analiseGemini.analiseQualitativa}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* Aviso quando IA não está disponível */
+                                    <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-lg border border-amber-200 dark:border-amber-700 shadow-md">
+                                        <div className="border-b border-amber-200 dark:border-amber-700 px-6 py-4">
+                                            <div className="flex items-center space-x-2">
+                                                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                                <h2 className="text-lg font-semibold text-amber-900 dark:text-amber-100">Análise IA - Temporariamente Indisponível</h2>
+                                            </div>
+                                        </div>
+                                        <div className="p-6">
+                                            <div className="space-y-3 text-sm text-amber-800 dark:text-amber-200">
+                                                <div className="flex items-start space-x-3 p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg">
+                                                    <div className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                    <span>Serviço de IA temporariamente sobrecarregado ou indisponível.</span>
+                                                </div>
+                                                <div className="flex items-start space-x-3 p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg">
+                                                    <div className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                    <span>A análise tradicional continua funcionando normalmente.</span>
+                                                </div>
+                                                <div className="flex items-start space-x-3 p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg">
+                                                    <div className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                    <span>Sistema fez 3 tentativas automáticas com intervalo inteligente.</span>
+                                                </div>
+                                                <div className="flex items-start space-x-3 p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg">
+                                                    <div className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                    <span>Tente novamente em alguns minutos.</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Sugestões Detalhadas da IA - Movida para abaixo da análise */}
+                                {resultado.sugestoesIA && resultado.sugestoesIA.length > 0 && (
+                                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-700 shadow-md">
+                                        <div className="border-b border-green-200 dark:border-green-700 px-6 py-4">
+                                            <div className="flex items-center space-x-2">
+                                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                <h2 className="text-lg font-semibold text-green-900 dark:text-green-100">Sugestões Detalhadas da IA</h2>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-6">
+                                            <div className="space-y-3 text-sm text-green-800 dark:text-green-200">
+                                                {resultado.sugestoesIA.map((sugestao: string, index: number) => (
+                                                    <div key={index} className="flex items-start space-x-3 p-3 bg-green-50 dark:bg-green-900/30 rounded-lg">
+                                                        <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                        <span className="leading-relaxed">{sugestao}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -799,81 +889,6 @@ const CorretorRedacao = () => {
                                                 ) : (
                                                     <div className="text-gray-500 dark:text-gray-400">Nenhuma sugestão específica disponível</div>
                                                 )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Análise da IA */}
-                                    {resultado.analiseGemini ? (
-                                        <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border border-blue-200 dark:border-blue-700 shadow-sm p-6">
-                                            <div className="flex items-center space-x-2 mb-4">
-                                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                                <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Análise da IA</h3>
-                                            </div>
-
-                                            {/* Nota da IA */}
-                                            <div className="text-center mb-4">
-                                                <div className="text-2xl font-bold text-blue-900 dark:text-blue-100 mb-1">
-                                                    {resultado.analiseGemini.notaFinal}/1000
-                                                </div>
-                                                <div className="text-xs text-blue-700 dark:text-blue-300">Avaliação IA</div>
-                                            </div>
-
-                                            {/* Feedback da IA - Resumido */}
-                                            {resultado.analiseGemini.feedbackGeral && resultado.analiseGemini.feedbackGeral.length > 0 && (
-                                                <div className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
-                                                    {resultado.analiseGemini.feedbackGeral.slice(0, 2).map((feedback: string, index: number) => (
-                                                        <div key={index} className="flex items-start space-x-2">
-                                                            <div className="w-1 h-1 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                                                            <span>{feedback}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        /* Aviso quando IA não está disponível */
-                                        <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-lg border border-amber-200 dark:border-amber-700 shadow-sm p-6">
-                                            <div className="flex items-center space-x-2 mb-4">
-                                                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                                                <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">Análise IA - Temporariamente Indisponível</h3>
-                                            </div>
-                                            <div className="space-y-2 text-sm text-amber-800 dark:text-amber-200">
-                                                <div className="flex items-start space-x-2">
-                                                    <div className="w-1 h-1 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
-                                                    <span>Serviço de IA temporariamente sobrecarregado ou indisponível.</span>
-                                                </div>
-                                                <div className="flex items-start space-x-2">
-                                                    <div className="w-1 h-1 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
-                                                    <span>A análise tradicional continua funcionando normalmente.</span>
-                                                </div>
-                                                <div className="flex items-start space-x-2">
-                                                    <div className="w-1 h-1 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
-                                                    <span>Sistema fez 3 tentativas automáticas com intervalo inteligente.</span>
-                                                </div>
-                                                <div className="flex items-start space-x-2">
-                                                    <div className="w-1 h-1 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
-                                                    <span>Tente novamente em alguns minutos.</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Sugestões Detalhadas da IA */}
-                                    {resultado.sugestoesIA && resultado.sugestoesIA.length > 0 && (
-                                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-700 shadow-sm p-6">
-                                            <div className="flex items-center space-x-2 mb-4">
-                                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                                <h3 className="text-sm font-semibold text-green-900 dark:text-green-100">Sugestões Detalhadas da IA</h3>
-                                            </div>
-
-                                            <div className="space-y-2 text-sm text-green-800 dark:text-green-200">
-                                                {resultado.sugestoesIA.slice(0, 3).map((sugestao: string, index: number) => (
-                                                    <div key={index} className="flex items-start space-x-2">
-                                                        <div className="w-1 h-1 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                                                        <span>{sugestao}</span>
-                                                    </div>
-                                                ))}
                                             </div>
                                         </div>
                                     )}

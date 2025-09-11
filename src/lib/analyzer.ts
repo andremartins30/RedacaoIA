@@ -218,309 +218,398 @@ const isTextoMuitoBaixaQualidade = (analises: ResultadoAnalise): boolean => {
     return problemas.length >= 4;
 };
 
-// Funções de cálculo de notas com critérios mais rigorosos
+// Funções de cálculo de notas seguindo EXATAMENTE os critérios oficiais do ENEM
 export const calcularNotaC1 = (analises: ResultadoAnalise): NotaCompetencia => {
     const detalhes: DetalhesNota[] = [];
 
+    // C1 - Domínio da norma culta: Sintaxe + desvios
+    // Critérios oficiais: 200, 160, 120, 80, 40, 0
+
     // Verifica se há texto suficiente para avaliação
     if (analises.palavras < 10) {
-        detalhes.push({ item: 'Texto insuficiente para avaliação', pontos: 0 });
+        detalhes.push({ item: 'Sintaxe inexistente - texto insuficiente', pontos: 0 });
         return { nota: 0, detalhes };
     }
 
-    // Verifica qualidade mínima - critérios mais brandos
-    if (!verificarQualidadeMinima(analises)) {
-        detalhes.push({ item: 'Texto não atende critérios mínimos de qualidade', pontos: 40 });
-        return { nota: 40, detalhes };
-    }
+    // Conta total de problemas de norma culta
+    let totalDesvios = 0;
 
-    // Verifica se é de qualidade muito baixa
-    if (isTextoMuitoBaixaQualidade(analises)) {
-        detalhes.push({ item: 'Texto apresenta múltiplos problemas graves de norma culta', pontos: 80 });
-        return { nota: 80, detalhes };
-    }
+    // Vícios de linguagem são desvios graves
+    totalDesvios += analises.vicios.length * 2; // Cada vício conta como 2 desvios
 
-    let nota = 120; // Começa com nota mediana
+    // Repetições excessivas são desvios
+    totalDesvios += analises.repetidas.filter(r => r.vezes >= 4).length;
 
-    // Penalidades mais moderadas
-    const penalidadeRepetidas = Math.min(analises.repetidas.length * 10, 40); // era 15, 60
-    if (penalidadeRepetidas > 0) {
-        nota -= penalidadeRepetidas;
-        detalhes.push({ item: `${analises.repetidas.length} tipo(s) de palavra repetida`, pontos: -penalidadeRepetidas });
-    }
+    // Frases muito longas podem indicar problemas sintáticos
+    totalDesvios += analises.frasesLongas.length;
 
-    const penalidadeVicios = Math.min(analises.vicios.length * 20, 60); // era 25, 80
-    if (penalidadeVicios > 0) {
-        nota -= penalidadeVicios;
-        detalhes.push({ item: `${analises.vicios.length} vício(s) de linguagem`, pontos: -penalidadeVicios });
-    }
-
-    const penalidadeFrasesLongas = Math.min(analises.frasesLongas.length * 10, 30); // era 15, 40
-    if (penalidadeFrasesLongas > 0) {
-        nota -= penalidadeFrasesLongas;
-        detalhes.push({ item: `${analises.frasesLongas.length} frase(s) muito longa(s)`, pontos: -penalidadeFrasesLongas });
-    }
-
-    // Bônus por qualidade superior (máximo 80 pontos)
+    // TTR muito baixo indica vocabulário limitado (desvio de norma culta)
     const ttr = parseFloat(analises.ttr);
-    if (ttr > 0.6 && analises.repetidas.length === 0 && analises.vicios.length === 0) {
-        const bonus = Math.min(40, (ttr - 0.6) * 200);
-        nota += bonus;
-        detalhes.push({ item: 'Excelente domínio da norma culta', pontos: bonus });
-    } else if (ttr > 0.5 && analises.vicios.length === 0) {
-        const bonus = 20;
-        nota += bonus;
-        detalhes.push({ item: 'Bom domínio da norma culta', pontos: bonus });
+    if (ttr < 0.3) {
+        totalDesvios += 3; // Vocabulário muito limitado é grave
+    } else if (ttr < 0.4) {
+        totalDesvios += 1;
     }
 
-    // Garante que a nota esteja sempre entre 0 e 200
-    const notaFinal = Math.max(0, Math.min(200, nota));
-
-    // Explica quando a nota fica zerada
-    if (notaFinal === 0) {
-        const totalPenalidades = penalidadeRepetidas + penalidadeVicios + penalidadeFrasesLongas;
-        detalhes.push({
-            item: `Nota zerada: penalidades totais (${totalPenalidades} pts) superaram a nota base (120 pts)`,
-            pontos: 0
-        });
-        detalhes.push({
-            item: 'Para melhorar: reduza repetições, vícios de linguagem e frases muito longas',
-            pontos: 0
-        });
-    } else if (detalhes.length === 0) {
-        detalhes.push({ item: 'Domínio adequado da norma culta', pontos: notaFinal });
+    // Determina nota conforme critérios oficiais (apenas notas permitidas)
+    let nota: number;
+    if (totalDesvios === 0 && ttr > 0.6) {
+        nota = 200; // Sintaxe excelente, no máximo dois desvios
+        detalhes.push({ item: 'Sintaxe excelente, sem desvios detectados', pontos: 200 });
+    } else if (totalDesvios <= 2) {
+        nota = 200; // Sintaxe excelente, no máximo dois desvios
+        detalhes.push({ item: `Sintaxe excelente, ${totalDesvios} desvio(s) detectado(s)`, pontos: 200 });
+    } else if (totalDesvios <= 4) {
+        nota = 160; // Sintaxe boa, poucos desvios
+        detalhes.push({ item: `Sintaxe boa, ${totalDesvios} desvios detectados`, pontos: 160 });
+    } else if (totalDesvios <= 7) {
+        nota = 120; // Sintaxe regular, alguns desvios
+        detalhes.push({ item: `Sintaxe regular, ${totalDesvios} desvios detectados`, pontos: 120 });
+    } else if (totalDesvios <= 12) {
+        nota = 80; // Sintaxe deficitária ou muitos desvios
+        detalhes.push({ item: `Sintaxe deficitária, ${totalDesvios} desvios detectados`, pontos: 80 });
+    } else if (totalDesvios <= 20) {
+        nota = 40; // Sintaxe deficitária e muitos desvios
+        detalhes.push({ item: `Sintaxe deficitária com muitos desvios (${totalDesvios})`, pontos: 40 });
+    } else {
+        nota = 0; // Sintaxe inexistente
+        detalhes.push({ item: `Sintaxe inexistente - ${totalDesvios} desvios graves`, pontos: 0 });
     }
 
-    return { nota: notaFinal, detalhes };
+    // Detalhamento dos problemas encontrados
+    if (analises.vicios.length > 0) {
+        detalhes.push({ item: `${analises.vicios.length} vício(s) de linguagem encontrado(s)`, pontos: 0 });
+    }
+    if (analises.repetidas.length > 0) {
+        detalhes.push({ item: `${analises.repetidas.length} tipo(s) de repetição excessiva`, pontos: 0 });
+    }
+    if (analises.frasesLongas.length > 0) {
+        detalhes.push({ item: `${analises.frasesLongas.length} frase(s) muito longa(s)`, pontos: 0 });
+    }
+
+    return { nota, detalhes };
 };
 
 export const calcularNotaC2 = (analises: ResultadoAnalise): NotaCompetencia => {
     const detalhes: DetalhesNota[] = [];
 
+    // C2 - Compreensão do tema + estrutura dissertativa + repertório
+    // Critérios oficiais: 200, 160, 120, 80, 40, 0
+
     // Verifica qualidade mínima
-    if (!verificarQualidadeMinima(analises)) {
-        detalhes.push({ item: 'Texto não atende estrutura mínima', pontos: 0 });
+    if (analises.palavras < 30) {
+        detalhes.push({ item: 'Texto insuficiente para avaliação do tema', pontos: 0 });
         return { nota: 0, detalhes };
     }
 
-    // Critérios muito rigorosos para estrutura
-    if (analises.palavras < 50) {
-        detalhes.push({ item: 'Texto extremamente curto', pontos: 0 });
-        return { nota: 0, detalhes };
+    // Avalia estrutura dissertativa (3 partes: introdução, desenvolvimento, conclusão)
+    let temEstruturaDissertativa = false;
+    let temRepertorio = false;
+    let abordagemCompleta = false;
+
+    // Verifica estrutura básica (4-5 parágrafos é ideal para dissertação)
+    if (analises.paragrafos >= 4 && analises.paragrafos <= 5) {
+        temEstruturaDissertativa = true;
+        detalhes.push({ item: 'Estrutura dissertativa adequada (4-5 parágrafos)', pontos: 0 });
+    } else if (analises.paragrafos === 3) {
+        // Pode ser estrutura mínima válida
+        temEstruturaDissertativa = analises.palavras >= 200; // Precisa ter substância
+        detalhes.push({ item: 'Estrutura mínima (3 parágrafos)', pontos: 0 });
+    } else {
+        detalhes.push({ item: `Estrutura inadequada (${analises.paragrafos} parágrafos)`, pontos: 0 });
     }
 
-    if (analises.palavras < 100) {
-        detalhes.push({ item: 'Texto muito curto (menos de 100 palavras)', pontos: 40 });
-        return { nota: 40, detalhes };
+    // Verifica se há repertório (marcadores argumentativos indicam conhecimento)
+    if (analises.marcadores.length >= 2) {
+        temRepertorio = true;
+        detalhes.push({ item: `Repertório detectado (${analises.marcadores.length} marcadores)`, pontos: 0 });
     }
 
-    if (analises.palavras < 150) {
-        detalhes.push({ item: 'Texto curto (menos de 150 palavras)', pontos: 80 });
-        return { nota: 80, detalhes };
+    // Verifica abordagem completa (extensão + estrutura + coerência)
+    if (analises.palavras >= 200 && analises.palavras <= 400 && analises.repetidas.length <= 3) {
+        abordagemCompleta = true;
+        detalhes.push({ item: 'Abordagem completa do tema', pontos: 0 });
     }
 
-    let nota = 100; // Começa com nota baixa
+    // Determina nota conforme critérios oficiais
+    let nota: number;
 
-    // Avalia estrutura de parágrafos de forma mais rigorosa
-    if (analises.paragrafos < 3) {
-        nota = Math.max(40, nota - 60);
-        detalhes.push({ item: 'Estrutura inadequada: menos de 3 parágrafos', pontos: -60 });
-    } else if (analises.paragrafos < 4) {
-        nota -= 40;
-        detalhes.push({ item: 'Estrutura inadequada: apenas 3 parágrafos', pontos: -40 });
-    } else if (analises.paragrafos === 4 || analises.paragrafos === 5) {
-        // Estrutura ideal
-        nota += 60;
-        detalhes.push({ item: 'Estrutura adequada: 4-5 parágrafos', pontos: 60 });
-    } else if (analises.paragrafos > 5) {
-        nota -= 20;
-        detalhes.push({ item: 'Muitos parágrafos (mais de 5)', pontos: -20 });
+    if (abordagemCompleta && temEstruturaDissertativa && temRepertorio && analises.marcadores.length >= 3) {
+        nota = 200; // Abordagem completa + três partes + repertório legitimado, pertinente e produtivo
+        detalhes.push({ item: 'Excelente: abordagem completa + estrutura + repertório produtivo', pontos: 200 });
+    } else if (abordagemCompleta && temEstruturaDissertativa && temRepertorio) {
+        nota = 160; // Abordagem completa + três partes + repertório legitimado e pertinente
+        detalhes.push({ item: 'Bom: abordagem completa + estrutura + repertório pertinente', pontos: 160 });
+    } else if (abordagemCompleta && temEstruturaDissertativa) {
+        nota = 120; // Abordagem completa + três partes, repertório limitado
+        detalhes.push({ item: 'Adequado: abordagem completa + estrutura dissertativa', pontos: 120 });
+    } else if (analises.palavras < 100 || analises.repetidas.length > 5) {
+        nota = 80; // Abordagem com foco temático distorcido
+        detalhes.push({ item: 'Deficitário: foco temático distorcido ou texto muito curto', pontos: 80 });
+    } else if (analises.paragrafos < 3 || analises.palavras < 150) {
+        nota = 40; // Abordagem incompleta do tema
+        detalhes.push({ item: 'Insuficiente: abordagem incompleta ou estrutura inadequada', pontos: 40 });
+    } else {
+        nota = 0; // Não atende critérios mínimos
+        detalhes.push({ item: 'Inadequado: não demonstra compreensão do tema', pontos: 0 });
     }
 
-    // Bônus por extensão adequada
-    if (analises.palavras >= 250 && analises.palavras <= 400) {
-        nota += 40;
-        detalhes.push({ item: 'Extensão ideal do texto', pontos: 40 });
-    } else if (analises.palavras > 400) {
-        nota -= 10;
-        detalhes.push({ item: 'Texto muito longo', pontos: -10 });
-    }
-
-    return { nota: Math.max(0, Math.min(200, nota)), detalhes };
+    return { nota, detalhes };
 };
 
 export const calcularNotaC3 = (analises: ResultadoAnalise): NotaCompetencia => {
     const detalhes: DetalhesNota[] = [];
 
+    // C3 - Projeto de texto (desenvolvimento de ideias)
+    // Critérios oficiais: 200, 160, 120, 80, 40, 0
+
     // Verifica qualidade mínima
-    if (!verificarQualidadeMinima(analises) || isTextoMuitoBaixaQualidade(analises)) {
-        detalhes.push({ item: 'Texto não apresenta argumentação válida', pontos: 0 });
+    if (analises.palavras < 50) {
+        detalhes.push({ item: 'Aglomerado caótico de palavras', pontos: 0 });
         return { nota: 0, detalhes };
     }
 
-    let nota = 60; // Começa muito baixo - argumentação deve ser provada
+    // Avalia desenvolvimento das ideias através de múltiplos indicadores
+    let projetoTexto = 0; // Pontuação do projeto (0-10)
+
+    // 1. Riqueza lexical (TTR) - indica desenvolvimento de ideias
     const ttr = parseFloat(analises.ttr);
-
-    // Avaliação rigorosa da riqueza lexical
-    let pontosTTR = 0;
-    if (ttr >= 0.7) {
-        pontosTTR = 80;
-        detalhes.push({ item: `Excelente riqueza lexical (TTR: ${analises.ttr})`, pontos: pontosTTR });
-    } else if (ttr >= 0.6) {
-        pontosTTR = 60;
-        detalhes.push({ item: `Boa riqueza lexical (TTR: ${analises.ttr})`, pontos: pontosTTR });
+    if (ttr >= 0.6) {
+        projetoTexto += 3; // Excelente variedade lexical
+        detalhes.push({ item: `Excelente variedade lexical (TTR: ${analises.ttr})`, pontos: 0 });
     } else if (ttr >= 0.5) {
-        pontosTTR = 40;
-        detalhes.push({ item: `Riqueza lexical adequada (TTR: ${analises.ttr})`, pontos: pontosTTR });
+        projetoTexto += 2; // Boa variedade
+        detalhes.push({ item: `Boa variedade lexical (TTR: ${analises.ttr})`, pontos: 0 });
     } else if (ttr >= 0.4) {
-        pontosTTR = 20;
-        detalhes.push({ item: `Riqueza lexical limitada (TTR: ${analises.ttr})`, pontos: pontosTTR });
+        projetoTexto += 1; // Variedade limitada
+        detalhes.push({ item: `Variedade lexical limitada (TTR: ${analises.ttr})`, pontos: 0 });
+    }
+
+    // 2. Marcadores argumentativos - indicam organização das ideias
+    if (analises.marcadores.length >= 3) {
+        projetoTexto += 2; // Ideias bem organizadas
+        detalhes.push({ item: `${analises.marcadores.length} marcadores argumentativos (ideias organizadas)`, pontos: 0 });
+    } else if (analises.marcadores.length >= 1) {
+        projetoTexto += 1; // Alguma organização
+        detalhes.push({ item: `${analises.marcadores.length} marcador(es) argumentativo(s)`, pontos: 0 });
+    }
+
+    // 3. Ausência de repetições excessivas - indica desenvolvimento adequado
+    if (analises.repetidas.length === 0) {
+        projetoTexto += 2; // Sem repetições
+        detalhes.push({ item: 'Ausência de repetições excessivas', pontos: 0 });
+    } else if (analises.repetidas.length <= 2) {
+        projetoTexto += 1; // Poucas repetições
     } else {
-        detalhes.push({ item: `Vocabulário muito limitado (TTR: ${analises.ttr})`, pontos: 0 });
+        detalhes.push({ item: `${analises.repetidas.length} tipos de repetição excessiva`, pontos: 0 });
     }
 
-    nota += pontosTTR;
-
-    // Avaliação rigorosa dos marcadores argumentativos
-    const numMarcadores = analises.marcadores.length;
-    let pontosMarcadores = 0;
-
-    if (numMarcadores === 0) {
-        detalhes.push({ item: 'Nenhum marcador argumentativo encontrado', pontos: 0 });
-    } else if (numMarcadores === 1) {
-        pontosMarcadores = 15;
-        detalhes.push({ item: '1 marcador argumentativo encontrado', pontos: pontosMarcadores });
-    } else if (numMarcadores === 2) {
-        pontosMarcadores = 30;
-        detalhes.push({ item: '2 marcadores argumentativos encontrados', pontos: pontosMarcadores });
-    } else if (numMarcadores >= 3) {
-        pontosMarcadores = Math.min(60, 20 * numMarcadores);
-        detalhes.push({ item: `${numMarcadores} marcadores argumentativos encontrados`, pontos: pontosMarcadores });
+    // 4. Extensão adequada para desenvolvimento
+    if (analises.palavras >= 200 && analises.paragrafos >= 4) {
+        projetoTexto += 2; // Espaço suficiente para desenvolver ideias
+        detalhes.push({ item: 'Extensão adequada para desenvolvimento das ideias', pontos: 0 });
+    } else if (analises.palavras >= 150) {
+        projetoTexto += 1; // Extensão mínima
     }
 
-    nota += pontosMarcadores;
-
-    // Penalidade por falta de coerência argumentativa
-    if (analises.repetidas.length > 3) {
-        const penalidade = 20;
-        nota -= penalidade;
-        detalhes.push({ item: 'Muita repetição prejudica a argumentação', pontos: -penalidade });
+    // 5. Penalidade por problemas graves
+    if (analises.vicios.length > 3) {
+        projetoTexto -= 2; // Vícios prejudicam o desenvolvimento
+        detalhes.push({ item: `${analises.vicios.length} vícios prejudicam o desenvolvimento`, pontos: 0 });
     }
 
-    return { nota: Math.max(0, Math.min(200, nota)), detalhes };
+    // Determina nota conforme critérios oficiais
+    let nota: number;
+
+    if (projetoTexto >= 9) {
+        nota = 200; // Projeto de texto estratégico (desenvolvimento de todas as ideias)
+        detalhes.push({ item: 'Excelente: projeto de texto estratégico', pontos: 200 });
+    } else if (projetoTexto >= 7) {
+        nota = 160; // Projeto de texto bom (poucas falhas no desenvolvimento das ideias)
+        detalhes.push({ item: 'Bom: projeto com poucas falhas no desenvolvimento', pontos: 160 });
+    } else if (projetoTexto >= 5) {
+        nota = 120; // Projeto de texto com falhas
+        detalhes.push({ item: 'Adequado: projeto com algumas falhas', pontos: 120 });
+    } else if (projetoTexto >= 3) {
+        nota = 80; // Projeto de texto com muitas falhas
+        detalhes.push({ item: 'Deficitário: projeto com muitas falhas', pontos: 80 });
+    } else if (projetoTexto >= 1) {
+        nota = 40; // Ausência de projeto de texto + ideias confusas
+        detalhes.push({ item: 'Insuficiente: ideias confusas ou aglomeradas', pontos: 40 });
+    } else {
+        nota = 0; // Aglomerado caótico de palavras
+        detalhes.push({ item: 'Inadequado: aglomerado caótico de palavras', pontos: 0 });
+    }
+
+    return { nota, detalhes };
 };
 
 export const calcularNotaC4 = (analises: ResultadoAnalise): NotaCompetencia => {
     const detalhes: DetalhesNota[] = [];
 
+    // C4 - Mecanismos linguísticos para argumentação (conectivos + repetições + inadequações)
+    // Critérios oficiais: 200, 160, 120, 80, 40, 0
+
     // Verifica qualidade mínima
-    if (!verificarQualidadeMinima(analises) || isTextoMuitoBaixaQualidade(analises)) {
-        detalhes.push({ item: 'Texto não apresenta coesão mínima', pontos: 0 });
+    if (analises.palavras < 50) {
+        detalhes.push({ item: 'Ausência de articulação (texto muito curto)', pontos: 0 });
         return { nota: 0, detalhes };
     }
 
+    // Avalia presença de conectivos
     const numConectivos = analises.conectivos.length;
-    let nota = 0;
-
-    // Sistema mais rigoroso e gradual
-    if (numConectivos === 0) {
-        detalhes.push({ item: 'Nenhum conectivo encontrado', pontos: 0 });
-        nota = 0;
-    } else if (numConectivos === 1) {
-        detalhes.push({ item: '1 conectivo utilizado - coesão insuficiente', pontos: 40 });
-        nota = 40;
-    } else if (numConectivos === 2) {
-        detalhes.push({ item: '2 conectivos utilizados - coesão básica', pontos: 80 });
-        nota = 80;
-    } else if (numConectivos === 3) {
-        detalhes.push({ item: '3 conectivos utilizados - coesão adequada', pontos: 120 });
-        nota = 120;
-    } else if (numConectivos >= 4 && numConectivos <= 6) {
-        detalhes.push({ item: `${numConectivos} conectivos utilizados - boa coesão`, pontos: 160 });
-        nota = 160;
-    } else if (numConectivos >= 7) {
-        detalhes.push({ item: `${numConectivos} conectivos utilizados - excelente coesão`, pontos: 200 });
-        nota = 200;
-    }
-
-    // Penalidade por uso inadequado (muita repetição de conectivos)
     const conectivosUnicos = new Set(analises.conectivos).size;
-    if (conectivosUnicos < numConectivos * 0.7) {
-        const penalidade = 20;
-        nota = Math.max(0, nota - penalidade);
-        detalhes.push({ item: 'Conectivos repetidos prejudicam a coesão', pontos: -penalidade });
+
+    // Avalia repetições excessivas
+    const repeticoesExcessivas = analises.repetidas.filter(r => r.vezes >= 4).length;
+
+    // Avalia inadequações (vícios de linguagem + frases muito longas)
+    const inadequacoes = analises.vicios.length + analises.frasesLongas.length;
+
+    // Sistema de pontuação baseado nos critérios oficiais
+    let qualidadeCoesao = 0; // 0-10 pontos
+
+    // 1. Presença de conectivos (0-4 pontos)
+    if (numConectivos >= 7) {
+        qualidadeCoesao += 4; // Presença expressiva
+        detalhes.push({ item: `Presença expressiva de conectivos (${numConectivos})`, pontos: 0 });
+    } else if (numConectivos >= 5) {
+        qualidadeCoesao += 3; // Presença constante
+        detalhes.push({ item: `Presença constante de conectivos (${numConectivos})`, pontos: 0 });
+    } else if (numConectivos >= 3) {
+        qualidadeCoesao += 2; // Presença regular
+        detalhes.push({ item: `Presença regular de conectivos (${numConectivos})`, pontos: 0 });
+    } else if (numConectivos >= 1) {
+        qualidadeCoesao += 1; // Presença pontual
+        detalhes.push({ item: `Presença pontual de conectivos (${numConectivos})`, pontos: 0 });
+    } else {
+        detalhes.push({ item: 'Ausência de conectivos', pontos: 0 });
     }
 
-    // Penalidade adicional por parágrafos insuficientes (afeta coesão)
-    if (analises.paragrafos < 3) {
-        const penalidade = 40;
-        nota = Math.max(0, nota - penalidade);
-        detalhes.push({ item: 'Poucos parágrafos prejudicam a coesão textual', pontos: -penalidade });
+    // 2. Avalia repetições (0-3 pontos - inverte a lógica: menos repetições = mais pontos)
+    if (repeticoesExcessivas === 0) {
+        qualidadeCoesao += 3; // Ausentes
+        detalhes.push({ item: 'Ausência de repetições excessivas', pontos: 0 });
+    } else if (repeticoesExcessivas <= 1) {
+        qualidadeCoesao += 2; // Raras
+        detalhes.push({ item: 'Raras repetições excessivas', pontos: 0 });
+    } else if (repeticoesExcessivas <= 3) {
+        qualidadeCoesao += 1; // Poucas/algumas
+        detalhes.push({ item: `${repeticoesExcessivas} repetições excessivas`, pontos: 0 });
+    } else {
+        detalhes.push({ item: `Muitas repetições excessivas (${repeticoesExcessivas})`, pontos: 0 });
     }
 
-    return { nota: Math.max(0, Math.min(200, nota)), detalhes };
+    // 3. Avalia inadequações (0-3 pontos - inverte a lógica: menos inadequações = mais pontos)
+    if (inadequacoes === 0) {
+        qualidadeCoesao += 3; // Sem inadequações
+        detalhes.push({ item: 'Sem inadequações detectadas', pontos: 0 });
+    } else if (inadequacoes <= 1) {
+        qualidadeCoesao += 2; // Poucas
+        detalhes.push({ item: 'Poucas inadequações', pontos: 0 });
+    } else if (inadequacoes <= 3) {
+        qualidadeCoesao += 1; // Algumas
+        detalhes.push({ item: `${inadequacoes} inadequações detectadas`, pontos: 0 });
+    } else {
+        detalhes.push({ item: `Muitas inadequações (${inadequacoes})`, pontos: 0 });
+    }
+
+    // Penalidade por variedade insuficiente de conectivos
+    if (numConectivos > 0 && conectivosUnicos < numConectivos * 0.7) {
+        qualidadeCoesao -= 1;
+        detalhes.push({ item: 'Pouca variedade nos conectivos utilizados', pontos: 0 });
+    }
+
+    // Determina nota conforme critérios oficiais
+    let nota: number;
+
+    if (qualidadeCoesao >= 9) {
+        nota = 200; // Presença expressiva + raras/ausentes repetições + sem inadequações
+        detalhes.push({ item: 'Excelente: coesão expressiva sem problemas', pontos: 200 });
+    } else if (qualidadeCoesao >= 7) {
+        nota = 160; // Presença constante + poucas repetições + poucas inadequações
+        detalhes.push({ item: 'Bom: coesão constante com poucos problemas', pontos: 160 });
+    } else if (qualidadeCoesao >= 5) {
+        nota = 120; // Presença regular + algumas repetições + algumas inadequações
+        detalhes.push({ item: 'Adequado: coesão regular com alguns problemas', pontos: 120 });
+    } else if (qualidadeCoesao >= 3) {
+        nota = 80; // Presença pontual + muitas repetições + muitas inadequações
+        detalhes.push({ item: 'Deficitário: coesão pontual com muitos problemas', pontos: 80 });
+    } else if (qualidadeCoesao >= 1) {
+        nota = 40; // Presença rara + excessivas repetições + excessivas inadequações
+        detalhes.push({ item: 'Insuficiente: coesão rara com problemas excessivos', pontos: 40 });
+    } else {
+        nota = 0; // Ausência de articulação
+        detalhes.push({ item: 'Inadequado: ausência de articulação textual', pontos: 0 });
+    }
+
+    return { nota, detalhes };
 };
 
 export const calcularNotaC5 = (analises: ResultadoAnalise): NotaCompetencia => {
     const detalhes: DetalhesNota[] = [];
 
+    // C5 - Proposta de intervenção (5 elementos válidos)
+    // Critérios oficiais EXATOS: 200 (5 elementos), 160 (4), 120 (3), 80 (2), 40 (1), 0 (nenhum)
+
     // Verifica qualidade mínima
-    if (!verificarQualidadeMinima(analises) || isTextoMuitoBaixaQualidade(analises)) {
-        detalhes.push({ item: 'Texto não apresenta proposta de intervenção', pontos: 0 });
+    if (analises.palavras < 50) {
+        detalhes.push({ item: 'Ausência de proposta de intervenção', pontos: 0 });
         return { nota: 0, detalhes };
     }
 
-    let nota = 0;
-    let elementosEncontrados = 0;
+    // Conta elementos válidos da proposta
+    let elementosValidos = 0;
+    const elementos = ['agente', 'acao', 'meio', 'finalidade', 'detalhamento'];
 
-    // Avaliação mais rigorosa dos elementos da proposta
-    const elementosObrigatorios = ['agente', 'acao', 'meio', 'finalidade'];
-    // const elementoOpcional = ['detalhamento']; // Não usado atualmente
-
-    for (const elemento of elementosObrigatorios) {
+    for (const elemento of elementos) {
         if (analises.intervencao[elemento]) {
-            elementosEncontrados++;
-            const pontos = 35; // Reduzido de 40 para 35
-            nota += pontos;
-            detalhes.push({ item: `Elemento "${elemento}" encontrado`, pontos: pontos });
+            elementosValidos++;
+            detalhes.push({ item: `Elemento "${elemento}" identificado`, pontos: 0 });
         }
     }
 
-    // Elemento detalhamento vale menos
-    if (analises.intervencao['detalhamento']) {
-        elementosEncontrados++;
-        const pontos = 25;
-        nota += pontos;
-        detalhes.push({ item: 'Elemento "detalhamento" encontrado', pontos: pontos });
+    // Determina nota EXATAMENTE conforme critérios oficiais
+    let nota: number;
+
+    if (elementosValidos === 5) {
+        nota = 200; // 5 elementos válidos
+        detalhes.push({ item: 'Excelente: proposta completa com todos os 5 elementos', pontos: 200 });
+    } else if (elementosValidos === 4) {
+        nota = 160; // 4 elementos válidos
+        detalhes.push({ item: 'Bom: proposta com 4 elementos válidos', pontos: 160 });
+    } else if (elementosValidos === 3) {
+        nota = 120; // 3 elementos válidos
+        detalhes.push({ item: 'Adequado: proposta com 3 elementos válidos', pontos: 120 });
+    } else if (elementosValidos === 2) {
+        nota = 80; // 2 elementos válidos
+        detalhes.push({ item: 'Deficitário: proposta com apenas 2 elementos válidos', pontos: 80 });
+    } else if (elementosValidos === 1) {
+        nota = 40; // 1 elemento válido
+        detalhes.push({ item: 'Insuficiente: proposta com apenas 1 elemento válido', pontos: 40 });
+    } else {
+        nota = 0; // Nenhum elemento válido
+        detalhes.push({ item: 'Inadequado: nenhum elemento válido de proposta identificado', pontos: 0 });
     }
 
-    // Penalidades por falta de elementos essenciais
-    const elementosFaltando = 4 - elementosObrigatorios.filter(el => analises.intervencao[el]).length;
-
-    if (elementosFaltando === 4) {
-        detalhes.push({ item: 'Nenhum elemento de proposta de intervenção encontrado (agente, ação, meio, finalidade)', pontos: 0 });
-        detalhes.push({ item: 'Para obter pontos em C5, é necessário apresentar pelo menos 2 elementos', pontos: 0 });
-        return { nota: 0, detalhes };
+    // Lista elementos em falta para orientação
+    const elementosFaltando = elementos.filter(el => !analises.intervencao[el]);
+    if (elementosFaltando.length > 0 && elementosValidos > 0) {
+        detalhes.push({
+            item: `Elementos em falta: ${elementosFaltando.join(', ')}`,
+            pontos: 0
+        });
     }
 
-    if (elementosFaltando === 3) {
-        detalhes.push({ item: 'Proposta muito incompleta - apenas 1 elemento', pontos: 0 });
-        // Mantém apenas nota mínima de 35
-        nota = Math.min(40, nota);
-    } else if (elementosFaltando === 2) {
-        detalhes.push({ item: 'Proposta incompleta - apenas 2 elementos', pontos: 0 });
-        // Penalidade por incompletude
-        nota = Math.min(80, nota);
+    // Orientação específica quando há zero elementos
+    if (elementosValidos === 0) {
+        detalhes.push({
+            item: 'Para obter pontos em C5, inclua: agente (quem), ação (o que fazer), meio (como), finalidade (para que) e detalhamento',
+            pontos: 0
+        });
     }
 
-    // Bônus por proposta completa (4 ou 5 elementos)
-    if (elementosEncontrados >= 4) {
-        const bonus = elementosEncontrados === 5 ? 20 : 10;
-        nota += bonus;
-        detalhes.push({ item: 'Proposta completa com todos os elementos', pontos: bonus });
-    }
-
-    return { nota: Math.max(0, Math.min(200, nota)), detalhes };
+    return { nota, detalhes };
 };
 
 export const analisarTextoCompleto = (texto: string): ResultadoAnalise => {
@@ -588,6 +677,25 @@ export const CONFIGURACOES_CONSENSO = {
     }
 };
 
+// Função para arredondar para nota oficial do ENEM (0, 40, 80, 120, 160, 200)
+const arredondarParaNotaOficial = (nota: number): number => {
+    const notasOficiais = [0, 40, 80, 120, 160, 200];
+
+    // Encontra a nota oficial mais próxima
+    let menorDistancia = Infinity;
+    let notaMaisProxima = 0;
+
+    for (const notaOficial of notasOficiais) {
+        const distancia = Math.abs(nota - notaOficial);
+        if (distancia < menorDistancia) {
+            menorDistancia = distancia;
+            notaMaisProxima = notaOficial;
+        }
+    }
+
+    return notaMaisProxima;
+};
+
 // Função principal para calcular o consenso
 export const calcularConsenso = (
     notasProfessor: { c1: number; c2: number; c3: number; c4: number; c5: number; },
@@ -616,17 +724,18 @@ export const calcularConsenso = (
 
         // Fórmula do consenso ponderado com ajuste
         const consensoBase = (notaProfessor * config.pesoProfessor + notaIA * config.pesoIA);
-        const consensoAjustado = Math.round(consensoBase * ajuste);
+        const consensoAjustado = consensoBase * ajuste;
 
-        // Garantir que a nota esteja entre 0 e 200
-        notasConsenso[comp] = Math.max(0, Math.min(200, consensoAjustado));
+        // CRUCIAL: Arredonda para nota oficial do ENEM
+        const notaOficial = arredondarParaNotaOficial(consensoAjustado);
+        notasConsenso[comp] = notaOficial;
 
         // Adicionar explicação detalhada
         const diferenca = Math.abs(notaProfessor - notaIA);
         if (diferenca > 50) {
             explicacao.push(
                 `${comp.toUpperCase()}: Grande diferença entre avaliações (Professor: ${notaProfessor}, IA: ${notaIA}). ` +
-                `Consenso: ${notasConsenso[comp]} (peso professor: ${(config.pesoProfessor * 100).toFixed(0)}%, IA: ${(config.pesoIA * 100).toFixed(0)}%, ajuste: ${(ajuste * 100).toFixed(0)}%)`
+                `Consenso: ${notasConsenso[comp]} (cálculo: ${consensoAjustado.toFixed(1)} → arredondado para nota oficial)`
             );
         } else {
             explicacao.push(
@@ -645,7 +754,7 @@ export const calcularConsenso = (
         notasIA: { ...notasIA, total: totalIA },
         notasConsenso,
         detalhesConsenso: {
-            metodologia: `Consenso ${config.nivelRigidez} com pesos: Professor ${(config.pesoProfessor * 100).toFixed(0)}%, IA ${(config.pesoIA * 100).toFixed(0)}%`,
+            metodologia: `Consenso ${config.nivelRigidez} com pesos: Professor ${(config.pesoProfessor * 100).toFixed(0)}%, IA ${(config.pesoIA * 100).toFixed(0)}% (notas arredondadas para padrão oficial)`,
             configuracao: config,
             explicacao
         }
