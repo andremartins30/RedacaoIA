@@ -242,15 +242,21 @@ export async function POST(request: NextRequest) {
 
                 // Segunda tentativa - sugestões detalhadas (só se a primeira funcionou)
                 if (analiseGemini) {
-                    const totalRelatorio = relatorio.c1.nota + relatorio.c2.nota + relatorio.c3.nota + relatorio.c4.nota + relatorio.c5.nota;
-                    sugestoesIA = await gerarSugestoesDetalhadas(texto, {
-                        c1: relatorio.c1.nota,
-                        c2: relatorio.c2.nota,
-                        c3: relatorio.c3.nota,
-                        c4: relatorio.c4.nota,
-                        c5: relatorio.c5.nota,
-                        total: totalRelatorio
-                    });
+                    try {
+                        const totalRelatorio = relatorio.c1.nota + relatorio.c2.nota + relatorio.c3.nota + relatorio.c4.nota + relatorio.c5.nota;
+                        sugestoesIA = await gerarSugestoesDetalhadas(texto, {
+                            c1: relatorio.c1.nota,
+                            c2: relatorio.c2.nota,
+                            c3: relatorio.c3.nota,
+                            c4: relatorio.c4.nota,
+                            c5: relatorio.c5.nota,
+                            total: totalRelatorio
+                        });
+                        console.log(`Sugestões IA geradas com sucesso: ${sugestoesIA.length} sugestões`);
+                    } catch (sugestaoError: unknown) {
+                        console.warn('Erro ao gerar sugestões detalhadas, mas análise principal foi bem-sucedida:', sugestaoError);
+                        sugestoesIA = []; // Continua sem sugestões, mas com análise principal
+                    }
                 }
             } catch (error: unknown) {
                 console.warn('Tentativa de análise IA completa falhou, tentando versão simplificada...', error);

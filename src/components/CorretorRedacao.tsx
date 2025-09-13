@@ -425,51 +425,55 @@ const CorretorRedacao = () => {
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
             {/* Header Acadêmico */}
-            <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-6 shadow-sm">
-                <div className="max-w-7xl mx-auto px-6">
+            <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-3 md:py-6 shadow-sm">
+                <div className="max-w-7xl mx-auto px-3 sm:px-6">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-2 sm:space-x-3">
                             <img
                                 src="/pen.png"
                                 alt="Logo IA"
-                                className="h-16 w-auto"
+                                className="h-10 sm:h-12 md:h-16 w-auto"
                             />
-                            <div>
-                                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Redação IA</h1>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Análise baseada nos critérios oficiais</p>
+                            <div className="min-w-0 flex-1">
+                                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white truncate">
+                                    Redação IA
+                                </h1>
+                                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
+                                    Análise baseada nos critérios oficiais
+                                </p>
                             </div>
                         </div>
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4">
                             <button
                                 onClick={() => setActiveTab('text')}
-                                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'text'
+                                className={`px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${activeTab === 'text'
                                     ? 'bg-gray-900 dark:bg-gray-700 text-white'
                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                                     }`}
                             >
-                                <Type className="h-4 w-4 inline mr-2" />
-                                Texto
+                                <Type className="h-3 w-3 sm:h-4 sm:w-4 inline mr-1 sm:mr-2" />
+                                <span className="hidden sm:inline">Texto</span>
                             </button>
                             <button
                                 onClick={() => setActiveTab('image')}
-                                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'image'
+                                className={`px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${activeTab === 'image'
                                     ? 'bg-gray-900 dark:bg-gray-700 text-white'
                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                                     }`}
                             >
-                                <Camera className="h-4 w-4 inline mr-2" />
-                                Imagem
+                                <Camera className="h-3 w-3 sm:h-4 sm:w-4 inline mr-1 sm:mr-2" />
+                                <span className="hidden sm:inline">Imagem</span>
                             </button>
                             <button
                                 onClick={toggleTheme}
-                                className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
+                                className="relative p-1.5 sm:p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
                                 title={isDark ? 'Alternar para modo claro' : 'Alternar para modo escuro'}
                             >
                                 <div className="relative">
                                     {isDark ? (
-                                        <Sun className="h-5 w-5 transform transition-transform duration-300 rotate-0" />
+                                        <Sun className="h-4 w-4 sm:h-5 sm:w-5 transform transition-transform duration-300 rotate-0" />
                                     ) : (
-                                        <Moon className="h-5 w-5 transform transition-transform duration-300 rotate-0" />
+                                        <Moon className="h-4 w-4 sm:h-5 sm:w-5 transform transition-transform duration-300 rotate-0" />
                                     )}
                                 </div>
                             </button>
@@ -652,7 +656,7 @@ const CorretorRedacao = () => {
                                             {/* Nota da IA */}
                                             <div className="text-center mb-6">
                                                 <div className="text-3xl font-bold text-blue-900 dark:text-blue-100 mb-2">
-                                                    {resultado.analiseGemini.notaFinal}/1000
+                                                    {resultado.consenso?.notasIA.total || resultado.analiseGemini.notaFinal}/1000
                                                 </div>
                                                 <div className="text-sm text-blue-700 dark:text-blue-300">Avaliação da Inteligência Artificial</div>
                                             </div>
@@ -751,10 +755,10 @@ const CorretorRedacao = () => {
                                     {/* Score Card Simplificado */}
                                     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm p-6">
                                         <div className="text-center mb-4">
-                                            <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                                            <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
                                                 {resultado.total}/1000
                                             </div>
-                                            <div className="text-sm text-gray-600 dark:text-gray-400">Nota do Professor</div>
+                                            <div className="text-sm text-gray-600 dark:text-gray-400">Nota Geral</div>
                                         </div>
 
                                         {/* Competências com Descrições Completas */}

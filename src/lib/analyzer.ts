@@ -10,6 +10,7 @@ export interface ResultadoAnalise {
     intervencao: { [key: string]: boolean };
     ttr: string;
     marcadores: string[];
+    tema?: string | null; // Adiciona informação sobre tema detectado
 }
 
 export interface DetalhesNota {
@@ -100,9 +101,60 @@ export const normalizarPalavras = (texto: string) => {
 
 export const contarPalavras = (texto: string) => normalizarPalavras(texto).length;
 
+// Função para identificar se o primeiro parágrafo é um tema/proposta
+export const identificarTema = (texto: string): { tema: string | null; textoRedacao: string } => {
+    const blocos = texto.split(/\n+/).filter(p => p.trim() !== '');
+
+    if (blocos.length === 0) {
+        return { tema: null, textoRedacao: texto };
+    }
+
+    const primeiroParagrafo = blocos[0].trim();
+
+    // Critérios para identificar se o primeiro parágrafo é um tema:
+    const indicadoresTema = [
+        /^tema:/i,                           // Começa com "Tema:"
+        /^proposta:/i,                       // Começa com "Proposta:"
+        /^questão:/i,                        // Começa com "Questão:"
+        /^redija.*text/i,                    // Contém "redija" e "text"
+        /^com base.*text/i,                  // Começa com "com base" e contém "text"
+        /^a partir.*text/i,                  // Começa com "a partir" e contém "text"
+        /^considerando.*text/i,              // Começa com "considerando" e contém "text"
+        /dissertativ.-argumentativ/i,        // Contém "dissertativo-argumentativo"
+        /modalidade escrita formal/i,        // Contém "modalidade escrita formal"
+        /defenda.*ponto.*vista/i,           // Contém "defenda" e "ponto" e "vista"
+        /elabore.*proposta.*intervenção/i,   // Contém elaboração de proposta de intervenção
+    ];
+
+    // Verifica se é muito curto para ser um parágrafo de redação (provavelmente é tema)
+    const palavrasPrimeiroParagrafo = primeiroParagrafo.split(/\s+/).length;
+    const caracteristicasTema = indicadoresTema.some(regex => regex.test(primeiroParagrafo));
+    const muitoCurtoParaRedacao = palavrasPrimeiroParagrafo < 15; // Menos de 15 palavras
+    const muitoLongoParaTema = palavrasPrimeiroParagrafo > 100;   // Mais de 100 palavras
+
+    // Se tem características de tema e não é muito longo, provavelmente é tema
+    if ((caracteristicasTema || muitoCurtoParaRedacao) && !muitoLongoParaTema) {
+        // Remove o primeiro parágrafo (tema) e retorna o resto como redação
+        const redacaoSemTema = blocos.slice(1).join('\n\n');
+        return {
+            tema: primeiroParagrafo,
+            textoRedacao: redacaoSemTema
+        };
+    }
+
+    // Se não parece ser tema, considera todo o texto como redação
+    return {
+        tema: null,
+        textoRedacao: texto
+    };
+};
+
 export const contarParagrafos = (texto: string) => {
-    // Remove linhas em branco e divide em blocos de texto
-    const blocosDeTexto = texto.split(/\n+/).filter(p => p.trim() !== '');
+    // Primeiro, identifica e remove o tema se presente
+    const { textoRedacao } = identificarTema(texto);
+
+    // Remove linhas em branco e divide em blocos de texto da redação (sem tema)
+    const blocosDeTexto = textoRedacao.split(/\n+/).filter(p => p.trim() !== '');
 
     // Aplica critérios mais rigorosos para considerar um parágrafo válido
     const paragrafosValidos = blocosDeTexto.filter(paragrafo => {
@@ -296,6 +348,11 @@ export const calcularNotaC2 = (analises: ResultadoAnalise): NotaCompetencia => {
     // C2 - Compreensão do tema + estrutura dissertativa + repertório
     // Critérios oficiais: 200, 160, 120, 80, 40, 0
 
+    // Informa se um tema foi detectado e removido da contagem de parágrafos
+    if (analises.tema) {
+        detalhes.push({ item: 'Tema detectado e separado da contagem de parágrafos', pontos: 0 });
+    }
+
     // Verifica qualidade mínima
     if (analises.palavras < 30) {
         detalhes.push({ item: 'Texto insuficiente para avaliação do tema', pontos: 0 });
@@ -310,13 +367,15 @@ export const calcularNotaC2 = (analises: ResultadoAnalise): NotaCompetencia => {
     // Verifica estrutura básica (4-5 parágrafos é ideal para dissertação)
     if (analises.paragrafos >= 4 && analises.paragrafos <= 5) {
         temEstruturaDissertativa = true;
-        detalhes.push({ item: 'Estrutura dissertativa adequada (4-5 parágrafos)', pontos: 0 });
+        detalhes.push({ item: 'Estrutura dissertativa adequada (4-5 parágrafos da redação)', pontos: 0 });
     } else if (analises.paragrafos === 3) {
         // Pode ser estrutura mínima válida
         temEstruturaDissertativa = analises.palavras >= 200; // Precisa ter substância
-        detalhes.push({ item: 'Estrutura mínima (3 parágrafos)', pontos: 0 });
+        detalhes.push({ item: 'Estrutura mínima (3 parágrafos da redação)', pontos: 0 });
+    } else if (analises.paragrafos >= 6) {
+        detalhes.push({ item: `Estrutura com muitos parágrafos (${analises.paragrafos} parágrafos da redação)`, pontos: 0 });
     } else {
-        detalhes.push({ item: `Estrutura inadequada (${analises.paragrafos} parágrafos)`, pontos: 0 });
+        detalhes.push({ item: `Estrutura insuficiente (${analises.paragrafos} parágrafo${analises.paragrafos > 1 ? 's' : ''} da redação)`, pontos: 0 });
     }
 
     // Verifica se há repertório (marcadores argumentativos indicam conhecimento)
@@ -613,17 +672,23 @@ export const calcularNotaC5 = (analises: ResultadoAnalise): NotaCompetencia => {
 };
 
 export const analisarTextoCompleto = (texto: string): ResultadoAnalise => {
+    // Identifica e separa o tema da redação
+    const { tema, textoRedacao } = identificarTema(texto);
+
+    // Para a contagem de palavras, usa o texto completo (incluindo tema se houver)
+    // Para parágrafos e análises estruturais, usa apenas o texto da redação
     return {
         texto,
-        palavras: contarPalavras(texto),
-        paragrafos: contarParagrafos(texto),
-        repetidas: encontrarPalavrasRepetidas(texto),
-        vicios: encontrarViciosDeLinguagem(texto),
-        conectivos: analisarConectivos(texto),
-        frasesLongas: analisarFrasesLongas(texto),
-        intervencao: verificarPropostaIntervencao(texto),
-        ttr: calcularTTR(texto),
-        marcadores: encontrarMarcadoresArgumentativos(texto)
+        palavras: contarPalavras(texto), // Conta palavras do texto completo
+        paragrafos: contarParagrafos(texto), // Já usa a função atualizada que ignora tema
+        repetidas: encontrarPalavrasRepetidas(textoRedacao), // Analisa apenas a redação
+        vicios: encontrarViciosDeLinguagem(textoRedacao), // Analisa apenas a redação
+        conectivos: analisarConectivos(textoRedacao), // Analisa apenas a redação
+        frasesLongas: analisarFrasesLongas(textoRedacao), // Analisa apenas a redação
+        intervencao: verificarPropostaIntervencao(textoRedacao), // Analisa apenas a redação
+        ttr: calcularTTR(textoRedacao), // Analisa apenas a redação
+        marcadores: encontrarMarcadoresArgumentativos(textoRedacao), // Analisa apenas a redação
+        tema: tema // Inclui informação sobre o tema detectado
     };
 };
 
