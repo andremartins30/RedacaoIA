@@ -6,15 +6,16 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'TextAI - Corretor Inteligente de Redações',
+  metadataBase: new URL('https://redacao-ia.com.br'),
+  title: 'REDAÇÃO IA - Corretor Inteligente de Redações',
   description: 'Corrija suas redações do ENEM com inteligência artificial. Receba notas detalhadas e feedback personalizado.',
   keywords: ['ENEM', 'redação', 'correção', 'inteligência artificial', 'educação'],
-  authors: [{ name: 'TextAI Team' }],
+  authors: [{ name: 'REDAÇÃO IA Team' }],
   openGraph: {
-    title: 'TextAI - Corretor Inteligente de Redações',
+    title: 'REDAÇÃO IA - Corretor Inteligente de Redações',
     description: 'Corrija suas redações do ENEM com IA',
-    url: 'https://TextAI.com.br',
-    siteName: 'TextAI',
+    url: 'https://redacao-ia.com.br',
+    siteName: 'REDAÇÃO IA',
     images: [
       {
         url: '/og-image.png',
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'TextAI - Corretor Inteligente de Redações',
+    title: 'REDAÇÃO IA - Corretor Inteligente de Redações',
     description: 'Corrija suas redações do ENEM com IA',
     images: ['/og-image.png'],
   },
