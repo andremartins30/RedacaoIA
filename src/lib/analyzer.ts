@@ -207,11 +207,37 @@ export const encontrarPalavrasRepetidas = (texto: string) => {
 };
 
 export const encontrarViciosDeLinguagem = (texto: string) => {
-    return viciosDeLinguagem.filter(v => texto.toLowerCase().includes(v));
+    const textoMinusculo = texto.toLowerCase();
+    const viciosEncontrados: string[] = [];
+
+    viciosDeLinguagem.forEach(vicio => {
+        // Cria regex com word boundaries para evitar falsos positivos
+        // \b garante que seja uma palavra completa, não parte de outra palavra
+        const regex = new RegExp(`\\b${vicio.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+
+        if (regex.test(textoMinusculo)) {
+            viciosEncontrados.push(vicio);
+        }
+    });
+
+    return viciosEncontrados;
 };
 
 export const analisarConectivos = (texto: string) => {
-    return [...new Set(conectivos.filter(c => texto.toLowerCase().includes(c)))];
+    const textoMinusculo = texto.toLowerCase();
+    const conectivosEncontrados: string[] = [];
+
+    conectivos.forEach(conectivo => {
+        // Para conectivos, usamos uma abordagem mais flexível
+        // Alguns conectivos podem aparecer no meio de frases
+        const regex = new RegExp(`\\b${conectivo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+
+        if (regex.test(textoMinusculo)) {
+            conectivosEncontrados.push(conectivo);
+        }
+    });
+
+    return [...new Set(conectivosEncontrados)];
 };
 
 export const analisarFrasesLongas = (texto: string, limite = 30) => {
@@ -241,7 +267,19 @@ export const calcularTTR = (texto: string) => {
 
 export const encontrarMarcadoresArgumentativos = (texto: string) => {
     const textoMinusculo = texto.toLowerCase();
-    return marcadoresArgumentativos.filter(marcador => textoMinusculo.includes(marcador));
+    const marcadoresEncontrados: string[] = [];
+
+    marcadoresArgumentativos.forEach(marcador => {
+        // Para marcadores argumentativos, usamos word boundaries
+        // para evitar falsos positivos
+        const regex = new RegExp(`\\b${marcador.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+
+        if (regex.test(textoMinusculo)) {
+            marcadoresEncontrados.push(marcador);
+        }
+    });
+
+    return marcadoresEncontrados;
 };
 
 // Função para verificar a qualidade básica do texto

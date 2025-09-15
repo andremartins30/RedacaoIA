@@ -222,14 +222,16 @@ const CorretorRedacao = () => {
     // Função auxiliar para encontrar todas as posições de uma palavra no texto
     const encontrarPosicoesTexto = (texto: string, palavra: string) => {
         const posicoes = [];
-        let index = texto.indexOf(palavra, 0);
 
-        while (index !== -1) {
+        // Usa regex com word boundaries para encontrar apenas palavras completas
+        const regex = new RegExp(`\\b${palavra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+        let match;
+
+        while ((match = regex.exec(texto)) !== null) {
             posicoes.push({
-                inicio: index,
-                fim: index + palavra.length
+                inicio: match.index,
+                fim: match.index + match[0].length
             });
-            index = texto.indexOf(palavra, index + 1);
         }
 
         return posicoes;
