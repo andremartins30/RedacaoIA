@@ -23,5 +23,5 @@ Corretor inteligente de redações do ENEM com inteligência artificial. Receba 
 - React 19
 - Tailwind CSS
 - Google Gemini AI
-- Tesseract.js (OCR)
+- Google Vision API (OCR)
 - TypeScript
