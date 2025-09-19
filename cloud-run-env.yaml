@@ -1,0 +1,15 @@
+# Arquivo de configuração de variáveis de ambiente para Google Cloud Run
+# Use este arquivo para configurar as variáveis de ambiente no Cloud Run
+
+# Variáveis de ambiente necessárias:
+GOOGLE_API_KEY=AIzaSyArB-Fa97orSz_NYaJPUP1T8EaxOsIuUYo
+GEMINI_API_KEY=AIzaSyArB-Fa97orSz_NYaJPUP1T8EaxOsIuUYo
+
+
+GOOGLE_VISION_PROJECT_ID=102607973073840412602
+GOOGLE_VISION_CLIENT_EMAIL=nota1000@nota1000-471713.iam.gserviceaccount.com
+GOOGLE_VISION_PRIVATE_KEY=AIzaSyAJEyMVFTwqZO5H4a4HuFoO7gk89w7jFXU
+GOOGLE_VISION_API_KEY=AIzaSyAJEyMVFTwqZO5H4a4HuFoO7gk89w7jFXU
+
+# Para configurar no Cloud Run, use:
+# gcloud run services update corretor-redacao --set-env-vars="GOOGLE_API_KEY=your_key,GOOGLE_VISION_API_KEY=your_key"

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste CORS</title>
+</head>
+
+<body>
+    <h1>Teste de CORS</h1>
+    <button onclick="testCORS()">Testar CORS</button>
+    <div id="result"></div>
+
+    <script>
+        async function testCORS() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testando...';
+
+            try {
+                // Teste 1: GET request
+                const response = await fetch('http://localhost:3000/api/test', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <h3>Teste GET:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+
+                // Teste 2: POST request (login)
+                const loginResponse = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'teste@teste.com',
+                        password: '123456'
+                    })
+                });
+
+                const loginData = await loginResponse.json();
+                resultDiv.innerHTML += `
+                    <h3>Teste POST (Login):</h3>
+                    <pre>${JSON.stringify(loginData, null, 2)}</pre>
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>Erro:</h3>
+                    <p style="color: red;">${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+
+</html>

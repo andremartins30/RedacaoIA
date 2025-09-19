@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
     // your project has type errors.
     ignoreBuildErrors: true,
   },
+  // Configuração para Google Cloud Run
+  output: 'standalone',
 };
 
 export default nextConfig;
