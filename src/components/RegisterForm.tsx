@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, Loader2, User, Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
 interface RegisterFormProps {
     onSuccess?: () => void;
@@ -69,136 +69,112 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
     };
 
     return (
-        <div className="w-full max-w-md mx-auto">
-            <div className="bg-white dark:bg-gray-800 shadow-xl rounded-lg p-8">
-                <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                        Criar Conta
-                    </h2>
-                    <p className="text-gray-600 dark:text-gray-400">
-                        Cadastre-se para começar a usar
-                    </p>
+        <div className="w-full max-w-sm mx-auto">
+            {/* Cabeçalho da Área do Corretor */}
+            <div className="bg-blue-600 text-center py-3 px-4 rounded-t-md">
+                <h2 className="text-sm font-bold text-white tracking-wider">
+                    CRIAR CONTA
+                </h2>
+            </div>
+
+            {/* Formulário */}
+            <div className="bg-white rounded-b-md shadow-lg p-6 border border-gray-100">
+                {/* Logo RedaçãoIA */}
+                <div className="text-center mb-6">
+                    <div className="inline-flex items-center justify-center">
+                        <span className="text-2xl font-light text-slate-700 tracking-wide" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                            RedaçãoIA
+                        </span>
+                    </div>
                 </div>
 
                 {error && (
-                    <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg">
-                        <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                        <p className="text-red-700 text-sm">{error}</p>
                     </div>
                 )}
 
                 {success && (
-                    <div className="mb-4 p-4 bg-green-100 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded-lg">
-                        <p className="text-green-700 dark:text-green-400 text-sm">{success}</p>
-                        <p className="text-green-600 dark:text-green-500 text-xs mt-1">
+                    <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                        <p className="text-green-700 text-sm">{success}</p>
+                        <p className="text-green-600 text-xs mt-1">
                             Redirecionando para login...
                         </p>
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Nome Completo
-                        </label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <User className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <input
-                                id="name"
-                                name="name"
-                                type="text"
-                                required
-                                value={formData.name}
-                                onChange={handleChange}
-                                className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                                placeholder="Seu nome completo"
-                            />
-                        </div>
+                        <input
+                            id="name"
+                            name="name"
+                            type="text"
+                            required
+                            value={formData.name}
+                            onChange={handleChange}
+                            className="block w-full px-3 py-3 bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black placeholder-gray-500 text-sm focus:bg-white active:bg-white"
+                            placeholder="Nome completo"
+                        />
                     </div>
 
                     <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Email
-                        </label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Mail className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <input
-                                id="email"
-                                name="email"
-                                type="email"
-                                required
-                                value={formData.email}
-                                onChange={handleChange}
-                                className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                                placeholder="seu@email.com"
-                            />
-                        </div>
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            required
+                            value={formData.email}
+                            onChange={handleChange}
+                            className="block w-full px-3 py-3 bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black placeholder-gray-500 text-sm focus:bg-white active:bg-white"
+                            placeholder="E-mail"
+                        />
+                    </div>
+
+                    <div className="relative">
+                        <input
+                            id="password"
+                            name="password"
+                            type={showPassword ? 'text' : 'password'}
+                            required
+                            value={formData.password}
+                            onChange={handleChange}
+                            className="block w-full px-3 py-3 pr-10 bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black placeholder-gray-500 text-sm focus:bg-white active:bg-white"
+                            placeholder="Senha (mín. 6 caracteres)"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        >
+                            {showPassword ? (
+                                <EyeOff className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                            ) : (
+                                <Eye className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                            )}
+                        </button>
                     </div>
 
                     <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Senha
-                        </label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Lock className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <input
-                                id="password"
-                                name="password"
-                                type={showPassword ? 'text' : 'password'}
-                                required
-                                value={formData.password}
-                                onChange={handleChange}
-                                className="block w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                                placeholder="Mínimo 6 caracteres"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                            >
-                                {showPassword ? (
-                                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                                ) : (
-                                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                                )}
-                            </button>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Confirmar Senha
-                        </label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Lock className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <input
-                                id="confirmPassword"
-                                name="confirmPassword"
-                                type={showPassword ? 'text' : 'password'}
-                                required
-                                value={formData.confirmPassword}
-                                onChange={handleChange}
-                                className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                                placeholder="Confirme sua senha"
-                            />
-                        </div>
+                        <input
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            type={showPassword ? 'text' : 'password'}
+                            required
+                            value={formData.confirmPassword}
+                            onChange={handleChange}
+                            className="block w-full px-3 py-3 bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black placeholder-gray-500 text-sm focus:bg-white active:bg-white"
+                            placeholder="Confirmar senha"
+                        />
                     </div>
 
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 text-sm"
                     >
                         {isLoading ? (
                             <>
-                                <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5" />
+                                <Loader2 className="animate-spin -ml-1 mr-3 h-4 w-4 inline" />
                                 Criando conta...
                             </>
                         ) : (
@@ -207,12 +183,13 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
                     </button>
                 </form>
 
-                <div className="mt-6 text-center">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                {/* Link para login */}
+                <div className="mt-4 text-center">
+                    <p className="text-xs text-gray-600">
                         Já tem uma conta?{' '}
                         <button
                             onClick={onSwitchToLogin}
-                            className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 transition-colors"
+                            className="font-medium text-blue-600 hover:text-blue-700 underline"
                         >
                             Faça login
                         </button>

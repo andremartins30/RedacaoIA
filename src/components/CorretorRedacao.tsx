@@ -437,12 +437,12 @@ const CorretorRedacao = () => {
                                 className="h-10 sm:h-12 md:h-16 w-auto"
                             />
                             <div className="min-w-0 flex-1">
-                                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white truncate">
+                                {/* <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white truncate">
                                     Redação IA
-                                </h1>
-                                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
+                                </h1> */}
+                                {/* <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
                                     Análise baseada nos critérios oficiais
-                                </p>
+                                </p> */}
                             </div>
                         </div>
                         <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4">
